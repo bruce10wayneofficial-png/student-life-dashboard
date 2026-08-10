@@ -2,6 +2,7 @@ import DashboardCard from "@/components/dashboardCard";
 import TaskList from "@/components/tasklist";
 import UpcomingEvents from "@/components/upcomingevents";
 
+
 export default function DashboardPage() {
   return (
     <div>
