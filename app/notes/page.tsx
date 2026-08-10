@@ -1,5 +1,8 @@
 // app/notes/page.tsx
 
+"use client";
+
+import { useState } from "react";
 import NoteCard from "@/components/notecard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,6 +51,28 @@ const exampleNotes: Note[] = [
 // ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function NotesPage() {
+
+  // ── Search State ────────────────────────────────────────────────────────────
+
+  // Stores whatever the user is currently typing
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // ── Filter Notes ────────────────────────────────────────────────────────────
+
+  // Convert the search text to lowercase so searching is not case-sensitive
+  const search = searchTerm.toLowerCase().trim();
+
+  // Keep notes that match the search text
+  const filteredNotes = exampleNotes.filter((note) => {
+    return (
+      note.title.toLowerCase().includes(search) ||
+      note.content.toLowerCase().includes(search) ||
+      note.subject.toLowerCase().includes(search)
+    );
+  });
+
+  // ─── UI ─────────────────────────────────────────────────────────────────────
+
   return (
     <div className="max-w-5xl mx-auto">
 
@@ -68,32 +93,36 @@ export default function NotesPage() {
 
         {/* Search Input */}
         <div className="relative flex-1">
+
+          {/* Search Icon */}
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
             🔍
           </span>
 
           <input
             type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search notes..."
-            disabled
             className="
               w-full pl-9 pr-4 py-2.5 text-sm rounded-xl
               border border-gray-200 bg-white text-gray-800
-              placeholder-gray-400 cursor-not-allowed
+              placeholder-gray-400
               focus:outline-none focus:ring-2 focus:ring-blue-300
+              focus:border-transparent
               transition-all duration-200
             "
           />
+
         </div>
 
-        {/* New Note Button */}
+        {/* New Note Button — we'll make this work later */}
         <button
           disabled
           className="
             flex items-center justify-center gap-2
             px-5 py-2.5 bg-blue-400 text-white text-sm font-medium
             rounded-xl opacity-60 cursor-not-allowed
-            transition-colors duration-200
           "
         >
           <span className="text-base leading-none">＋</span>
@@ -104,24 +133,50 @@ export default function NotesPage() {
 
       {/* ── Notes Count ── */}
       <p className="text-xs text-gray-400 mb-4">
-        Showing {exampleNotes.length} notes
+        Showing {filteredNotes.length} of {exampleNotes.length} notes
       </p>
 
-      {/* ── Notes Grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* ── Notes Grid / Empty State ── */}
 
-        {exampleNotes.map((note) => (
-          <NoteCard
-            key={note.id}
-            title={note.title}
-            content={note.content}
-            subject={note.subject}
-            date={note.date}
-            color={note.color}
-          />
-        ))}
+      {filteredNotes.length === 0 ? (
 
-      </div>
+        // Nothing matched the search
+        <div className="
+          flex flex-col items-center justify-center
+          py-16 text-center
+          bg-gray-50 border border-gray-100 rounded-2xl
+        ">
+          <span className="text-4xl mb-3">
+            🔍
+          </span>
+
+          <h2 className="text-lg font-semibold text-gray-700">
+            No notes found
+          </h2>
+
+          <p className="text-sm text-gray-400 mt-1">
+            Try searching for something else.
+          </p>
+        </div>
+
+      ) : (
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {filteredNotes.map((note) => (
+            <NoteCard
+              key={note.id}
+              title={note.title}
+              content={note.content}
+              subject={note.subject}
+              date={note.date}
+              color={note.color}
+            />
+          ))}
+
+        </div>
+
+      )}
 
     </div>
   );
