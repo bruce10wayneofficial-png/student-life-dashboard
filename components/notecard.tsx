@@ -1,3 +1,5 @@
+"use client";
+
 type NoteCardProps = {
   title: string;
   content: string;
@@ -35,14 +37,19 @@ export default function NoteCard({
 }: NoteCardProps) {
   return (
     <div
-      className={`flex flex-col rounded-2xl border p-5 shadow-sm hover:shadow-md transition-shadow duration-200 ${color}`}
+      className={`
+        flex flex-col rounded-2xl border p-5
+        shadow-sm hover:shadow-md transition-shadow duration-200
+        ${color}
+      `}
     >
-      {/* Subject + Date */}
-      <div className="mb-3 flex items-center justify-between">
+      {/* Top: Subject + Date */}
+      <div className="flex items-center justify-between mb-3">
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-            subjectStyles[subject] ?? "bg-gray-100 text-gray-600"
-          }`}
+          className={`
+            text-xs font-medium px-2.5 py-1 rounded-full
+            ${subjectStyles[subject] ?? "bg-gray-100 text-gray-600"}
+          `}
         >
           {subject}
         </span>
@@ -53,32 +60,48 @@ export default function NoteCard({
       </div>
 
       {/* Title */}
-      <h2 className="mb-2 text-base font-semibold text-gray-800">
+      <h2 className="text-base font-semibold text-gray-800 mb-2">
         {title}
       </h2>
 
       {/* Content */}
-      <p className="flex-1 line-clamp-4 text-sm leading-relaxed text-gray-600">
+      <p className="text-sm text-gray-600 leading-relaxed flex-1 line-clamp-4">
         {content}
       </p>
 
       {/* Buttons */}
-      <div className="mt-4 flex items-center justify-end gap-2 border-t border-black/5 pt-4">
+      <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-black/5">
+
+        {/* Edit */}
         <button
           onClick={onEdit}
           aria-label={`Edit note: ${title}`}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100"
+          className="
+            flex items-center gap-1.5 px-3 py-1.5
+            text-xs font-medium text-gray-600
+            bg-white rounded-lg border border-gray-200
+            hover:bg-blue-50 hover:text-blue-600
+            transition-colors duration-200
+          "
         >
-          ✏️ Edit 
+          ✏️ Edit
         </button>
 
+        {/* Delete */}
         <button
           onClick={onDelete}
           aria-label={`Delete note: ${title}`}
-          className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50"
+          className="
+            flex items-center gap-1.5 px-3 py-1.5
+            text-xs font-medium text-red-500
+            bg-white rounded-lg border border-red-200
+            hover:bg-red-50
+            transition-colors duration-200
+          "
         >
           🗑️ Delete
         </button>
+
       </div>
     </div>
   );
