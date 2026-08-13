@@ -82,6 +82,10 @@ export default function NotesPage() {
 
   const [notes, setNotes] = useState<Note[]>(initialNotes);
 
+  // This prevents us from saving the initial notes before
+  // we have finished checking localStorage.
+  const [notesLoaded, setNotesLoaded] = useState(false);
+
   // ── Search State ───────────────────────────────────────────────────────────
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,13 +117,24 @@ export default function NotesPage() {
         console.log("Could not load saved notes.");
       }
     }
+
+    // Loading is finished.
+    setNotesLoaded(true);
   }, []);
 
   // ─── Save Notes To localStorage ───────────────────────────────────────────
 
   useEffect(() => {
-    localStorage.setItem("student-life-notes", JSON.stringify(notes));
-  }, [notes]);
+    // Do NOT save until we have finished loading.
+    if (!notesLoaded) {
+      return;
+    }
+
+    localStorage.setItem(
+      "student-life-notes",
+      JSON.stringify(notes)
+    );
+  }, [notes, notesLoaded]);
 
   // ─── Create Note ──────────────────────────────────────────────────────────
 
@@ -142,7 +157,10 @@ export default function NotesPage() {
         "bg-gray-50 border-gray-200",
     };
 
-    setNotes((currentNotes) => [newNote, ...currentNotes]);
+    setNotes((currentNotes) => [
+      newNote,
+      ...currentNotes,
+    ]);
 
     setNewTitle("");
     setNewContent("");
