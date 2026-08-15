@@ -38,7 +38,7 @@ const initialEvents: Event[] = [
   },
 ];
 
-// ─── Event Styles ─────────────────────────────────────────────────────────────
+// ─── Event Styles ────────────────────────────────────────────────────────────
 
 const eventTypeStyles: Record<
   Event["type"],
@@ -62,7 +62,7 @@ const eventTypeStyles: Record<
   },
 };
 
-// ─── Date Formatter ──────────────────────────────────────────────────────────
+// ─── Date Formatter ─────────────────────────────────────────────────────────
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -75,71 +75,50 @@ function formatDate(dateString: string): string {
   });
 }
 
-// ─── Calendar Page ────────────────────────────────────────────────────────────
+// ─── Calendar Page ───────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
-
   // ── Events State ──────────────────────────────────────────────────────────
 
   const [events, setEvents] = useState<Event[]>(initialEvents);
 
-  // IMPORTANT:
-  // This tells us whether localStorage has already been loaded.
-  const [hasLoaded, setHasLoaded] = useState(false);
+  // ── Loading State ─────────────────────────────────────────────────────────
+  // This prevents localStorage from being overwritten before it is loaded.
 
-  // ── Create Form State ─────────────────────────────────────────────────────
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // ── New Event Form State ──────────────────────────────────────────────────
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
-
   const [newType, setNewType] =
     useState<Event["type"]>("academic");
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // LOAD EVENTS
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Load Events From localStorage ─────────────────────────────────────────
 
   useEffect(() => {
-
-    const savedEvents =
-      localStorage.getItem("student-life-events");
+    const savedEvents = localStorage.getItem("student-life-events");
 
     if (savedEvents) {
-
       try {
-
-        const parsedEvents: Event[] =
-          JSON.parse(savedEvents);
-
+        const parsedEvents: Event[] = JSON.parse(savedEvents);
         setEvents(parsedEvents);
-
       } catch {
-
         console.log("Could not load saved events.");
-
       }
-
     }
 
-    // IMPORTANT:
-    // Only after loading do we allow saving.
-    setHasLoaded(true);
-
+    // Important: loading is now finished
+    setIsLoaded(true);
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // SAVE EVENTS
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Save Events To localStorage ───────────────────────────────────────────
 
   useEffect(() => {
-
-    // DO NOT save anything until localStorage
-    // has finished loading.
-
-    if (!hasLoaded) {
+    // Don't save anything until the existing data has been loaded.
+    if (!isLoaded) {
       return;
     }
 
@@ -147,83 +126,17 @@ export default function CalendarPage() {
       "student-life-events",
       JSON.stringify(events)
     );
+  }, [events, isLoaded]);
 
-  }, [events, hasLoaded]);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // CREATE EVENT
-  // ─────────────────────────────────────────────────────────────────────────
-
-  function createEvent() {
-
-    const title = newTitle.trim();
-
-    // Don't create incomplete events.
-    if (
-      title === "" ||
-      newDate === "" ||
-      newTime === ""
-    ) {
-      return;
-    }
-
-    const newEvent: Event = {
-      id: Date.now(),
-      title,
-      date: newDate,
-      time: newTime,
-      type: newType,
-    };
-
-    setEvents((currentEvents) => {
-
-      const updatedEvents = [
-        ...currentEvents,
-        newEvent,
-      ];
-
-      // Keep events sorted by date + time.
-      return updatedEvents.sort((a, b) => {
-
-        const first =
-          `${a.date} ${a.time}`;
-
-        const second =
-          `${b.date} ${b.time}`;
-
-        return first.localeCompare(second);
-
-      });
-
-    });
-
-    // Clear form.
-    setNewTitle("");
-    setNewDate("");
-    setNewTime("");
-    setNewType("academic");
-
-    // Close form.
-    setShowCreateForm(false);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // DELETE EVENT
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Delete Event ──────────────────────────────────────────────────────────
 
   function deleteEvent(id: number) {
-
     setEvents((currentEvents) =>
-      currentEvents.filter(
-        (event) => event.id !== id
-      )
+      currentEvents.filter((event) => event.id !== id)
     );
-
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // UI
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── UI ────────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -231,7 +144,6 @@ export default function CalendarPage() {
       {/* ── Header ── */}
 
       <div className="mb-8">
-
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           📅 Calendar
         </h1>
@@ -240,196 +152,15 @@ export default function CalendarPage() {
           Keep track of your lectures, exams, activities and
           important events.
         </p>
-
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* ── Event Count ── */}
 
-      <div className="flex items-center justify-between mb-6">
-
+      <div className="mb-5">
         <span className="text-xs text-gray-400">
           {events.length} upcoming events
         </span>
-
-        <button
-          onClick={() =>
-            setShowCreateForm(!showCreateForm)
-          }
-          className="
-            flex items-center gap-2
-            px-4 py-2.5
-            bg-blue-500 hover:bg-blue-600
-            text-white text-sm font-medium
-            rounded-xl
-            transition-colors duration-200
-          "
-        >
-
-          <span>＋</span>
-
-          {showCreateForm
-            ? "Close"
-            : "New Event"}
-
-        </button>
-
       </div>
-
-      {/* ── Create Event Form ── */}
-
-      {showCreateForm && (
-
-        <div
-          className="
-            mb-8
-            bg-white
-            border border-gray-200
-            rounded-2xl
-            p-6
-            shadow-sm
-          "
-        >
-
-          <h2 className="text-lg font-semibold text-gray-800 mb-5">
-            ✨ Create New Event
-          </h2>
-
-          {/* Title */}
-
-          <input
-            type="text"
-            value={newTitle}
-            onChange={(e) =>
-              setNewTitle(e.target.value)
-            }
-            placeholder="Event title..."
-            className="
-              w-full mb-3
-              px-4 py-2.5
-              rounded-xl
-              border border-gray-200
-              text-sm text-gray-800
-              focus:outline-none
-              focus:ring-2 focus:ring-blue-300
-            "
-          />
-
-          {/* Date + Time */}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-
-            <input
-              type="date"
-              value={newDate}
-              onChange={(e) =>
-                setNewDate(e.target.value)
-              }
-              className="
-                w-full
-                px-4 py-2.5
-                rounded-xl
-                border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2 focus:ring-blue-300
-              "
-            />
-
-            <input
-              type="time"
-              value={newTime}
-              onChange={(e) =>
-                setNewTime(e.target.value)
-              }
-              className="
-                w-full
-                px-4 py-2.5
-                rounded-xl
-                border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2 focus:ring-blue-300
-              "
-            />
-
-          </div>
-
-          {/* Type */}
-
-          <select
-            value={newType}
-            onChange={(e) =>
-              setNewType(
-                e.target.value as Event["type"]
-              )
-            }
-            className="
-              w-full mb-5
-              px-4 py-2.5
-              rounded-xl
-              border border-gray-200
-              text-sm text-gray-800
-              focus:outline-none
-              focus:ring-2 focus:ring-blue-300
-            "
-          >
-
-            <option value="academic">
-              📚 Academic
-            </option>
-
-            <option value="social">
-              🎉 Social
-            </option>
-
-            <option value="sports">
-              ⚽ Sports
-            </option>
-
-            <option value="other">
-              📌 Other
-            </option>
-
-          </select>
-
-          {/* Buttons */}
-
-          <div className="flex justify-end gap-2">
-
-            <button
-              onClick={() =>
-                setShowCreateForm(false)
-              }
-              className="
-                px-4 py-2
-                text-sm rounded-lg
-                bg-gray-100
-                hover:bg-gray-200
-                text-gray-600
-              "
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={createEvent}
-              className="
-                px-4 py-2
-                text-sm font-medium
-                rounded-lg
-                bg-blue-500
-                hover:bg-blue-600
-                text-white
-              "
-            >
-              Create Event
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
 
       {/* ── Events ── */}
 
@@ -437,15 +168,7 @@ export default function CalendarPage() {
 
         {events.length === 0 ? (
 
-          <div
-            className="
-              bg-white
-              border border-gray-200
-              rounded-2xl
-              p-10
-              text-center
-            "
-          >
+          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
 
             <div className="text-4xl mb-3">
               📅
@@ -456,7 +179,7 @@ export default function CalendarPage() {
             </h2>
 
             <p className="text-sm text-gray-400 mt-1">
-              Create your first event above.
+              Your upcoming events will appear here.
             </p>
 
           </div>
@@ -469,28 +192,25 @@ export default function CalendarPage() {
               eventTypeStyles[event.type];
 
             return (
-
               <div
                 key={event.id}
                 className="
                   flex items-center gap-4
-                  bg-white
-                  border border-gray-200
-                  rounded-2xl
-                  p-5
+                  bg-white border border-gray-200
+                  rounded-2xl p-5
                   shadow-sm
                   hover:shadow-md
                   transition-shadow duration-200
                 "
               >
 
-                {/* Icon */}
+                {/* ── Icon ── */}
 
                 <div className="text-3xl">
                   {emoji}
                 </div>
 
-                {/* Information */}
+                {/* ── Event Information ── */}
 
                 <div className="flex-1">
 
@@ -508,7 +228,7 @@ export default function CalendarPage() {
 
                 </div>
 
-                {/* Type */}
+                {/* ── Type ── */}
 
                 <span
                   className={`
@@ -523,12 +243,10 @@ export default function CalendarPage() {
                   {event.type}
                 </span>
 
-                {/* Delete */}
+                {/* ── Delete ── */}
 
                 <button
-                  onClick={() =>
-                    deleteEvent(event.id)
-                  }
+                  onClick={() => deleteEvent(event.id)}
                   aria-label={`Delete event: ${event.title}`}
                   className="
                     p-2 rounded-lg
@@ -542,9 +260,7 @@ export default function CalendarPage() {
                 </button>
 
               </div>
-
             );
-
           })
 
         )}
