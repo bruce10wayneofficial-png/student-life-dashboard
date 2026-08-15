@@ -83,13 +83,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<Event[]>(initialEvents);
 
   // ── Loading State ─────────────────────────────────────────────────────────
-  // This prevents localStorage from being overwritten before it is loaded.
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // ── New Event Form State ──────────────────────────────────────────────────
+  // ── Create Event Form State ───────────────────────────────────────────────
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
@@ -110,14 +110,12 @@ export default function CalendarPage() {
       }
     }
 
-    // Important: loading is now finished
     setIsLoaded(true);
   }, []);
 
   // ── Save Events To localStorage ───────────────────────────────────────────
 
   useEffect(() => {
-    // Don't save anything until the existing data has been loaded.
     if (!isLoaded) {
       return;
     }
@@ -127,6 +125,44 @@ export default function CalendarPage() {
       JSON.stringify(events)
     );
   }, [events, isLoaded]);
+
+  // ── Create Event ──────────────────────────────────────────────────────────
+
+  function createEvent() {
+    const title = newTitle.trim();
+
+    // Don't create an incomplete event
+    if (
+      title === "" ||
+      newDate === "" ||
+      newTime === ""
+    ) {
+      return;
+    }
+
+    const newEvent: Event = {
+      id: Date.now(),
+      title,
+      date: newDate,
+      time: newTime,
+      type: newType,
+    };
+
+    // Add the new event to the beginning of the list
+    setEvents((currentEvents) => [
+      newEvent,
+      ...currentEvents,
+    ]);
+
+    // Clear the form
+    setNewTitle("");
+    setNewDate("");
+    setNewTime("");
+    setNewType("academic");
+
+    // Close the form
+    setShowCreateForm(false);
+  }
 
   // ── Delete Event ──────────────────────────────────────────────────────────
 
@@ -154,13 +190,194 @@ export default function CalendarPage() {
         </p>
       </div>
 
-      {/* ── Event Count ── */}
+      {/* ── Toolbar ── */}
 
-      <div className="mb-5">
+      <div className="flex items-center justify-between mb-5">
+
         <span className="text-xs text-gray-400">
           {events.length} upcoming events
         </span>
+
+        <button
+          onClick={() =>
+            setShowCreateForm(!showCreateForm)
+          }
+          className="
+            flex items-center gap-2
+            px-4 py-2.5
+            bg-blue-500 hover:bg-blue-600
+            text-white text-sm font-medium
+            rounded-xl
+            transition-colors duration-200
+          "
+        >
+          <span className="text-base">
+            ＋
+          </span>
+
+          {showCreateForm
+            ? "Close"
+            : "New Event"}
+        </button>
+
       </div>
+
+      {/* ── Create Event Form ── */}
+
+      {showCreateForm && (
+        <div className="
+          mb-6
+          bg-white
+          border border-gray-200
+          rounded-2xl
+          p-6
+          shadow-sm
+        ">
+
+          <h2 className="text-lg font-semibold text-gray-800 mb-5">
+            ✨ Create New Event
+          </h2>
+
+          {/* Event Title */}
+
+          <input
+            type="text"
+            value={newTitle}
+            onChange={(e) =>
+              setNewTitle(e.target.value)
+            }
+            placeholder="Event title..."
+            className="
+              w-full mb-3
+              px-4 py-2.5
+              rounded-xl
+              border border-gray-200
+              text-sm text-gray-800
+              placeholder-gray-400
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-300
+            "
+          />
+
+          {/* Date */}
+
+          <input
+            type="date"
+            value={newDate}
+            onChange={(e) =>
+              setNewDate(e.target.value)
+            }
+            className="
+              w-full mb-3
+              px-4 py-2.5
+              rounded-xl
+              border border-gray-200
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-300
+            "
+          />
+
+          {/* Time */}
+
+          <input
+            type="time"
+            value={newTime}
+            onChange={(e) =>
+              setNewTime(e.target.value)
+            }
+            className="
+              w-full mb-3
+              px-4 py-2.5
+              rounded-xl
+              border border-gray-200
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-300
+            "
+          />
+
+          {/* Event Type */}
+
+          <select
+            value={newType}
+            onChange={(e) =>
+              setNewType(
+                e.target.value as Event["type"]
+              )
+            }
+            className="
+              w-full mb-5
+              px-4 py-2.5
+              rounded-xl
+              border border-gray-200
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-300
+            "
+          >
+            <option value="academic">
+              📚 Academic
+            </option>
+
+            <option value="social">
+              🎉 Social
+            </option>
+
+            <option value="sports">
+              ⚽ Sports
+            </option>
+
+            <option value="other">
+              📌 Other
+            </option>
+          </select>
+
+          {/* Form Buttons */}
+
+          <div className="flex justify-end gap-2">
+
+            <button
+              onClick={() =>
+                setShowCreateForm(false)
+              }
+              className="
+                px-4 py-2
+                text-sm
+                rounded-lg
+                bg-gray-100
+                hover:bg-gray-200
+                text-gray-600
+                transition-colors
+              "
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={createEvent}
+              className="
+                px-4 py-2
+                text-sm
+                rounded-lg
+                bg-blue-500
+                hover:bg-blue-600
+                text-white
+                font-medium
+                transition-colors
+              "
+            >
+              Create Event
+            </button>
+
+          </div>
+
+        </div>
+      )}
 
       {/* ── Events ── */}
 
@@ -168,7 +385,13 @@ export default function CalendarPage() {
 
         {events.length === 0 ? (
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+          <div className="
+            bg-white
+            border border-gray-200
+            rounded-2xl
+            p-10
+            text-center
+          ">
 
             <div className="text-4xl mb-3">
               📅
@@ -196,21 +419,23 @@ export default function CalendarPage() {
                 key={event.id}
                 className="
                   flex items-center gap-4
-                  bg-white border border-gray-200
-                  rounded-2xl p-5
+                  bg-white
+                  border border-gray-200
+                  rounded-2xl
+                  p-5
                   shadow-sm
                   hover:shadow-md
                   transition-shadow duration-200
                 "
               >
 
-                {/* ── Icon ── */}
+                {/* Icon */}
 
                 <div className="text-3xl">
                   {emoji}
                 </div>
 
-                {/* ── Event Information ── */}
+                {/* Event Information */}
 
                 <div className="flex-1">
 
@@ -228,7 +453,7 @@ export default function CalendarPage() {
 
                 </div>
 
-                {/* ── Type ── */}
+                {/* Type */}
 
                 <span
                   className={`
@@ -243,10 +468,12 @@ export default function CalendarPage() {
                   {event.type}
                 </span>
 
-                {/* ── Delete ── */}
+                {/* Delete */}
 
                 <button
-                  onClick={() => deleteEvent(event.id)}
+                  onClick={() =>
+                    deleteEvent(event.id)
+                  }
                   aria-label={`Delete event: ${event.title}`}
                   className="
                     p-2 rounded-lg
