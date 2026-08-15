@@ -86,7 +86,7 @@ export default function CalendarPage() {
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // ── Create Event Form State ───────────────────────────────────────────────
+  // ── Create Event State ────────────────────────────────────────────────────
 
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -94,6 +94,16 @@ export default function CalendarPage() {
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newType, setNewType] =
+    useState<Event["type"]>("academic");
+
+  // ── Edit Event State ─────────────────────────────────────────────────────
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingDate, setEditingDate] = useState("");
+  const [editingTime, setEditingTime] = useState("");
+  const [editingType, setEditingType] =
     useState<Event["type"]>("academic");
 
   // ── Load Events From localStorage ─────────────────────────────────────────
@@ -131,7 +141,6 @@ export default function CalendarPage() {
   function createEvent() {
     const title = newTitle.trim();
 
-    // Don't create an incomplete event
     if (
       title === "" ||
       newDate === "" ||
@@ -148,20 +157,73 @@ export default function CalendarPage() {
       type: newType,
     };
 
-    // Add the new event to the beginning of the list
     setEvents((currentEvents) => [
       newEvent,
       ...currentEvents,
     ]);
 
-    // Clear the form
     setNewTitle("");
     setNewDate("");
     setNewTime("");
     setNewType("academic");
 
-    // Close the form
     setShowCreateForm(false);
+  }
+
+  // ── Start Editing Event ───────────────────────────────────────────────────
+
+  function startEditing(event: Event) {
+    setEditingId(event.id);
+
+    setEditingTitle(event.title);
+    setEditingDate(event.date);
+    setEditingTime(event.time);
+    setEditingType(event.type);
+  }
+
+  // ── Save Edited Event ─────────────────────────────────────────────────────
+
+  function saveEdit() {
+    if (editingId === null) {
+      return;
+    }
+
+    const title = editingTitle.trim();
+
+    if (
+      title === "" ||
+      editingDate === "" ||
+      editingTime === ""
+    ) {
+      return;
+    }
+
+    setEvents((currentEvents) =>
+      currentEvents.map((event) =>
+        event.id === editingId
+          ? {
+              ...event,
+              title,
+              date: editingDate,
+              time: editingTime,
+              type: editingType,
+            }
+          : event
+      )
+    );
+
+    cancelEdit();
+  }
+
+  // ── Cancel Editing ───────────────────────────────────────────────────────
+
+  function cancelEdit() {
+    setEditingId(null);
+
+    setEditingTitle("");
+    setEditingDate("");
+    setEditingTime("");
+    setEditingType("academic");
   }
 
   // ── Delete Event ──────────────────────────────────────────────────────────
@@ -170,6 +232,12 @@ export default function CalendarPage() {
     setEvents((currentEvents) =>
       currentEvents.filter((event) => event.id !== id)
     );
+
+    // If the event being edited gets deleted,
+    // close the edit form.
+    if (editingId === id) {
+      cancelEdit();
+    }
   }
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -238,7 +306,7 @@ export default function CalendarPage() {
             ✨ Create New Event
           </h2>
 
-          {/* Event Title */}
+          {/* Title */}
 
           <input
             type="text"
@@ -300,7 +368,7 @@ export default function CalendarPage() {
             "
           />
 
-          {/* Event Type */}
+          {/* Type */}
 
           <select
             value={newType}
@@ -337,7 +405,7 @@ export default function CalendarPage() {
             </option>
           </select>
 
-          {/* Form Buttons */}
+          {/* Buttons */}
 
           <div className="flex justify-end gap-2">
 
@@ -347,12 +415,10 @@ export default function CalendarPage() {
               }
               className="
                 px-4 py-2
-                text-sm
-                rounded-lg
+                text-sm rounded-lg
                 bg-gray-100
                 hover:bg-gray-200
                 text-gray-600
-                transition-colors
               "
             >
               Cancel
@@ -362,13 +428,11 @@ export default function CalendarPage() {
               onClick={createEvent}
               className="
                 px-4 py-2
-                text-sm
-                rounded-lg
+                text-sm rounded-lg
                 bg-blue-500
                 hover:bg-blue-600
                 text-white
                 font-medium
-                transition-colors
               "
             >
               Create Event
@@ -468,7 +532,23 @@ export default function CalendarPage() {
                   {event.type}
                 </span>
 
-                {/* Delete */}
+                {/* Edit Button */}
+
+                <button
+                  onClick={() => startEditing(event)}
+                  aria-label={`Edit event: ${event.title}`}
+                  className="
+                    p-2 rounded-lg
+                    text-gray-300
+                    hover:text-blue-500
+                    hover:bg-blue-50
+                    transition-colors
+                  "
+                >
+                  ✏️
+                </button>
+
+                {/* Delete Button */}
 
                 <button
                   onClick={() =>
@@ -493,6 +573,165 @@ export default function CalendarPage() {
         )}
 
       </div>
+
+      {/* ── Edit Event Modal ── */}
+
+      {editingId !== null && (
+
+        <div className="
+          fixed inset-0 z-50
+          flex items-center justify-center
+          bg-black/40
+          p-4
+        ">
+
+          <div className="
+            w-full max-w-lg
+            bg-white
+            rounded-2xl
+            p-6
+            shadow-xl
+          ">
+
+            <h2 className="text-xl font-semibold text-gray-800 mb-5">
+              ✏️ Edit Event
+            </h2>
+
+            {/* Title */}
+
+            <input
+              type="text"
+              value={editingTitle}
+              onChange={(e) =>
+                setEditingTitle(e.target.value)
+              }
+              placeholder="Event title..."
+              className="
+                w-full mb-3
+                px-4 py-2.5
+                rounded-xl
+                border border-gray-200
+                text-sm text-gray-800
+                focus:outline-none
+                focus:ring-2
+                focus:ring-blue-300
+              "
+            />
+
+            {/* Date */}
+
+            <input
+              type="date"
+              value={editingDate}
+              onChange={(e) =>
+                setEditingDate(e.target.value)
+              }
+              className="
+                w-full mb-3
+                px-4 py-2.5
+                rounded-xl
+                border border-gray-200
+                text-sm text-gray-800
+                focus:outline-none
+                focus:ring-2
+                focus:ring-blue-300
+              "
+            />
+
+            {/* Time */}
+
+            <input
+              type="time"
+              value={editingTime}
+              onChange={(e) =>
+                setEditingTime(e.target.value)
+              }
+              className="
+                w-full mb-3
+                px-4 py-2.5
+                rounded-xl
+                border border-gray-200
+                text-sm text-gray-800
+                focus:outline-none
+                focus:ring-2
+                focus:ring-blue-300
+              "
+            />
+
+            {/* Type */}
+
+            <select
+              value={editingType}
+              onChange={(e) =>
+                setEditingType(
+                  e.target.value as Event["type"]
+                )
+              }
+              className="
+                w-full mb-5
+                px-4 py-2.5
+                rounded-xl
+                border border-gray-200
+                text-sm text-gray-800
+                focus:outline-none
+                focus:ring-2
+                focus:ring-blue-300
+              "
+            >
+              <option value="academic">
+                📚 Academic
+              </option>
+
+              <option value="social">
+                🎉 Social
+              </option>
+
+              <option value="sports">
+                ⚽ Sports
+              </option>
+
+              <option value="other">
+                📌 Other
+              </option>
+            </select>
+
+            {/* Modal Buttons */}
+
+            <div className="flex justify-end gap-2">
+
+              <button
+                onClick={cancelEdit}
+                className="
+                  px-4 py-2
+                  text-sm rounded-lg
+                  bg-gray-100
+                  hover:bg-gray-200
+                  text-gray-600
+                "
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={saveEdit}
+                className="
+                  px-4 py-2
+                  text-sm rounded-lg
+                  bg-blue-500
+                  hover:bg-blue-600
+                  text-white
+                  font-medium
+                "
+              >
+                Save Changes
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   );
