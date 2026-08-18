@@ -106,6 +106,11 @@ export default function CalendarPage() {
   const [editingType, setEditingType] =
     useState<Event["type"]>("academic");
 
+  // ── Filter State ─────────────────────────────────────────────────────────
+
+  const [filterType, setFilterType] =
+    useState<"all" | Event["type"]>("all");
+
   // ── Load Events From localStorage ─────────────────────────────────────────
 
   useEffect(() => {
@@ -233,12 +238,17 @@ export default function CalendarPage() {
       currentEvents.filter((event) => event.id !== id)
     );
 
-    // If the event being edited gets deleted,
-    // close the edit form.
     if (editingId === id) {
       cancelEdit();
     }
   }
+
+  // ── Filter Events ─────────────────────────────────────────────────────────
+
+  const filteredEvents =
+    filterType === "all"
+      ? events
+      : events.filter((event) => event.type === filterType);
 
   // ── UI ────────────────────────────────────────────────────────────────────
 
@@ -260,33 +270,82 @@ export default function CalendarPage() {
 
       {/* ── Toolbar ── */}
 
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+
+        {/* Event Count */}
 
         <span className="text-xs text-gray-400">
-          {events.length} upcoming events
+          Showing {filteredEvents.length} of {events.length} events
         </span>
 
-        <button
-          onClick={() =>
-            setShowCreateForm(!showCreateForm)
-          }
-          className="
-            flex items-center gap-2
-            px-4 py-2.5
-            bg-blue-500 hover:bg-blue-600
-            text-white text-sm font-medium
-            rounded-xl
-            transition-colors duration-200
-          "
-        >
-          <span className="text-base">
-            ＋
-          </span>
+        <div className="flex gap-2">
 
-          {showCreateForm
-            ? "Close"
-            : "New Event"}
-        </button>
+          {/* Filter */}
+
+          <select
+            value={filterType}
+            onChange={(e) =>
+              setFilterType(
+                e.target.value as "all" | Event["type"]
+              )
+            }
+            className="
+              px-3 py-2.5
+              rounded-xl
+              border border-gray-200
+              bg-white
+              text-sm text-gray-700
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-300
+            "
+          >
+            <option value="all">
+              All Types
+            </option>
+
+            <option value="academic">
+              📚 Academic
+            </option>
+
+            <option value="social">
+              🎉 Social
+            </option>
+
+            <option value="sports">
+              ⚽ Sports
+            </option>
+
+            <option value="other">
+              📌 Other
+            </option>
+          </select>
+
+          {/* New Event */}
+
+          <button
+            onClick={() =>
+              setShowCreateForm(!showCreateForm)
+            }
+            className="
+              flex items-center gap-2
+              px-4 py-2.5
+              bg-blue-500 hover:bg-blue-600
+              text-white text-sm font-medium
+              rounded-xl
+              transition-colors duration-200
+            "
+          >
+            <span className="text-base">
+              ＋
+            </span>
+
+            {showCreateForm
+              ? "Close"
+              : "New Event"}
+          </button>
+
+        </div>
 
       </div>
 
@@ -305,8 +364,6 @@ export default function CalendarPage() {
           <h2 className="text-lg font-semibold text-gray-800 mb-5">
             ✨ Create New Event
           </h2>
-
-          {/* Title */}
 
           <input
             type="text"
@@ -328,8 +385,6 @@ export default function CalendarPage() {
             "
           />
 
-          {/* Date */}
-
           <input
             type="date"
             value={newDate}
@@ -348,8 +403,6 @@ export default function CalendarPage() {
             "
           />
 
-          {/* Time */}
-
           <input
             type="time"
             value={newTime}
@@ -367,8 +420,6 @@ export default function CalendarPage() {
               focus:ring-blue-300
             "
           />
-
-          {/* Type */}
 
           <select
             value={newType}
@@ -404,8 +455,6 @@ export default function CalendarPage() {
               📌 Other
             </option>
           </select>
-
-          {/* Buttons */}
 
           <div className="flex justify-end gap-2">
 
@@ -447,7 +496,7 @@ export default function CalendarPage() {
 
       <div className="space-y-4">
 
-        {events.length === 0 ? (
+        {filteredEvents.length === 0 ? (
 
           <div className="
             bg-white
@@ -462,18 +511,18 @@ export default function CalendarPage() {
             </div>
 
             <h2 className="text-lg font-semibold text-gray-700">
-              No events
+              No events found
             </h2>
 
             <p className="text-sm text-gray-400 mt-1">
-              Your upcoming events will appear here.
+              Try changing the filter or create a new event.
             </p>
 
           </div>
 
         ) : (
 
-          events.map((event) => {
+          filteredEvents.map((event) => {
 
             const { emoji, badge } =
               eventTypeStyles[event.type];
@@ -532,7 +581,7 @@ export default function CalendarPage() {
                   {event.type}
                 </span>
 
-                {/* Edit Button */}
+                {/* Edit */}
 
                 <button
                   onClick={() => startEditing(event)}
@@ -548,7 +597,7 @@ export default function CalendarPage() {
                   ✏️
                 </button>
 
-                {/* Delete Button */}
+                {/* Delete */}
 
                 <button
                   onClick={() =>
@@ -597,8 +646,6 @@ export default function CalendarPage() {
               ✏️ Edit Event
             </h2>
 
-            {/* Title */}
-
             <input
               type="text"
               value={editingTitle}
@@ -618,8 +665,6 @@ export default function CalendarPage() {
               "
             />
 
-            {/* Date */}
-
             <input
               type="date"
               value={editingDate}
@@ -638,8 +683,6 @@ export default function CalendarPage() {
               "
             />
 
-            {/* Time */}
-
             <input
               type="time"
               value={editingTime}
@@ -657,8 +700,6 @@ export default function CalendarPage() {
                 focus:ring-blue-300
               "
             />
-
-            {/* Type */}
 
             <select
               value={editingType}
@@ -694,8 +735,6 @@ export default function CalendarPage() {
                 📌 Other
               </option>
             </select>
-
-            {/* Modal Buttons */}
 
             <div className="flex justify-end gap-2">
 
