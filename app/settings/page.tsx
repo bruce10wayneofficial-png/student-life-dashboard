@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
 
-  // ── Load Settings From localStorage ────────────────────────────────────────
+  // ── Load Settings ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     const savedSettings = localStorage.getItem(
@@ -71,6 +71,11 @@ export default function SettingsPage() {
       JSON.stringify(settings)
     );
 
+    // Tell ThemeProvider that settings changed
+    window.dispatchEvent(
+      new Event("student-settings-changed")
+    );
+
     setSaved(true);
 
     setTimeout(() => {
@@ -86,6 +91,11 @@ export default function SettingsPage() {
     localStorage.setItem(
       "student-life-settings",
       JSON.stringify(defaultSettings)
+    );
+
+    // Tell ThemeProvider that settings changed
+    window.dispatchEvent(
+      new Event("student-settings-changed")
     );
 
     setSaved(true);

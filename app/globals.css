@@ -8,19 +8,171 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground: #0a0a0a;
-    --background: #e7d7d7;
-  }
+/* ──────────────────────────────────────────────────────────
+   DARK MODE
+   Our ThemeProvider adds .dark to the <html> element.
+   ────────────────────────────────────────────────────────── */
+
+html.dark {
+  --background: #111827;
+  --foreground: #f9fafb;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+/* ──────────────────────────────────────────────────────────
+   GLOBAL DARK MODE OVERRIDES
+   These make the existing white/light-gray UI respond to
+   the dark-mode setting without rewriting every component.
+   ────────────────────────────────────────────────────────── */
+
+html.dark body {
+  background: #111827;
+  color: #f9fafb;
+}
+
+/* White backgrounds */
+
+html.dark .bg-white {
+  background-color: #1f2937;
+}
+
+/* Light gray backgrounds */
+
+html.dark .bg-gray-50 {
+  background-color: #1f2937;
+}
+
+html.dark .bg-gray-100 {
+  background-color: #374151;
+}
+
+/* Borders */
+
+html.dark .border-gray-100 {
+  border-color: #374151;
+}
+
+html.dark .border-gray-200 {
+  border-color: #4b5563;
+}
+
+/* Text */
+
+html.dark .text-gray-800 {
+  color: #f3f4f6;
+}
+
+html.dark .text-gray-700 {
+  color: #e5e7eb;
+}
+
+html.dark .text-gray-600 {
+  color: #d1d5db;
+}
+
+html.dark .text-gray-500 {
+  color: #9ca3af;
+}
+
+html.dark .text-gray-400 {
+  color: #9ca3af;
+}
+
+/* Inputs */
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1f2937;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Hover backgrounds */
+
+html.dark .hover\:bg-gray-50:hover {
+  background-color: #374151;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+  background-color: #374151;
+}
+
+html.dark .hover\:bg-gray-200:hover {
+  background-color: #4b5563;
+}
+
+/* Modal overlay */
+
+html.dark .bg-black\/40 {
+  background-color: rgb(0 0 0 / 0.65);
+}
+
+/* Your note/event colored cards should stay recognizable,
+   but become slightly darker in dark mode. */
+
+html.dark .bg-blue-50 {
+  background-color: #172554;
+}
+
+html.dark .bg-yellow-50 {
+  background-color: #422006;
+}
+
+html.dark .bg-purple-50 {
+  background-color: #2e1065;
+}
+
+/* Colored badges */
+
+html.dark .bg-blue-100 {
+  background-color: #1e3a8a;
+}
+
+html.dark .bg-yellow-100 {
+  background-color: #713f12;
+}
+
+html.dark .bg-purple-100 {
+  background-color: #581c87;
+}
+
+html.dark .bg-green-100 {
+  background-color: #14532d;
+}
+
+/* Keep colored text readable */
+
+html.dark .text-blue-700 {
+  color: #bfdbfe;
+}
+
+html.dark .text-yellow-700 {
+  color: #fde68a;
+}
+
+html.dark .text-purple-700 {
+  color: #e9d5ff;
+}
+
+html.dark .text-green-700 {
+  color: #bbf7d0;
 }

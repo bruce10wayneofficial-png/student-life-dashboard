@@ -1,5 +1,6 @@
 import Sidebar from "@/components/sidebar";
 import Navbar from "@/components/navbar";
+import ThemeProvider from "@/components/theme";
 import "./globals.css";
 
 export default function RootLayout({
@@ -10,15 +11,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Sidebar />
+        <ThemeProvider>
+          <Sidebar />
 
-        <div className="ml-60">
-          <Navbar />
+          <div className="ml-60">
+            <Navbar />
 
-          <main className="p-8">
-            {children}
-          </main>
-        </div>
+            <main className="p-8">
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
