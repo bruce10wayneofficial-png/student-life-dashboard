@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Event = {
   id: number;
   title: string;
@@ -11,8 +9,6 @@ type Event = {
   time: string;
   type: "academic" | "social" | "sports" | "other";
 };
-
-// ─── Initial Events ───────────────────────────────────────────────────────────
 
 const initialEvents: Event[] = [
   {
@@ -38,8 +34,6 @@ const initialEvents: Event[] = [
   },
 ];
 
-// ─── Event Styles ────────────────────────────────────────────────────────────
-
 const eventTypeStyles: Record<
   Event["type"],
   { emoji: string; badge: string }
@@ -62,8 +56,6 @@ const eventTypeStyles: Record<
   },
 };
 
-// ─── Date Formatter ─────────────────────────────────────────────────────────
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
 
@@ -75,46 +67,41 @@ function formatDate(dateString: string): string {
   });
 }
 
-// ─── Calendar Page ───────────────────────────────────────────────────────────
-
 export default function CalendarPage() {
-  // ── Events State ──────────────────────────────────────────────────────────
+  // ── Events ────────────────────────────────────────────────────────────────
 
   const [events, setEvents] = useState<Event[]>(initialEvents);
-
-  // ── Loading State ─────────────────────────────────────────────────────────
-
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // ── Create Event State ────────────────────────────────────────────────────
+  // ── Create Form ───────────────────────────────────────────────────────────
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newType, setNewType] =
     useState<Event["type"]>("academic");
 
-  // ── Edit Event State ─────────────────────────────────────────────────────
+  // ── Edit Form ─────────────────────────────────────────────────────────────
 
   const [editingId, setEditingId] = useState<number | null>(null);
-
   const [editingTitle, setEditingTitle] = useState("");
   const [editingDate, setEditingDate] = useState("");
   const [editingTime, setEditingTime] = useState("");
   const [editingType, setEditingType] =
     useState<Event["type"]>("academic");
 
-  // ── Filter State ─────────────────────────────────────────────────────────
+  // ── Filter ─────────────────────────────────────────────────────────────────
 
   const [filterType, setFilterType] =
     useState<"all" | Event["type"]>("all");
 
-  // ── Load Events From localStorage ─────────────────────────────────────────
+  // ── Load events ───────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const savedEvents = localStorage.getItem("student-life-events");
+    const savedEvents = localStorage.getItem(
+      "student-life-events"
+    );
 
     if (savedEvents) {
       try {
@@ -128,7 +115,7 @@ export default function CalendarPage() {
     setIsLoaded(true);
   }, []);
 
-  // ── Save Events To localStorage ───────────────────────────────────────────
+  // ── Save events ───────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isLoaded) {
@@ -141,7 +128,15 @@ export default function CalendarPage() {
     );
   }, [events, isLoaded]);
 
-  // ── Create Event ──────────────────────────────────────────────────────────
+  // ── Tell Dashboard that data changed ──────────────────────────────────────
+
+  function notifyDashboard() {
+    window.dispatchEvent(
+      new Event("student-dashboard-updated")
+    );
+  }
+
+  // ── Create event ──────────────────────────────────────────────────────────
 
   function createEvent() {
     const title = newTitle.trim();
@@ -171,22 +166,22 @@ export default function CalendarPage() {
     setNewDate("");
     setNewTime("");
     setNewType("academic");
-
     setShowCreateForm(false);
+
+    notifyDashboard();
   }
 
-  // ── Start Editing Event ───────────────────────────────────────────────────
+  // ── Start editing ─────────────────────────────────────────────────────────
 
   function startEditing(event: Event) {
     setEditingId(event.id);
-
     setEditingTitle(event.title);
     setEditingDate(event.date);
     setEditingTime(event.time);
     setEditingType(event.type);
   }
 
-  // ── Save Edited Event ─────────────────────────────────────────────────────
+  // ── Save edit ─────────────────────────────────────────────────────────────
 
   function saveEdit() {
     if (editingId === null) {
@@ -218,20 +213,20 @@ export default function CalendarPage() {
     );
 
     cancelEdit();
+    notifyDashboard();
   }
 
-  // ── Cancel Editing ───────────────────────────────────────────────────────
+  // ── Cancel edit ───────────────────────────────────────────────────────────
 
   function cancelEdit() {
     setEditingId(null);
-
     setEditingTitle("");
     setEditingDate("");
     setEditingTime("");
     setEditingType("academic");
   }
 
-  // ── Delete Event ──────────────────────────────────────────────────────────
+  // ── Delete event ──────────────────────────────────────────────────────────
 
   function deleteEvent(id: number) {
     setEvents((currentEvents) =>
@@ -241,21 +236,25 @@ export default function CalendarPage() {
     if (editingId === id) {
       cancelEdit();
     }
+
+    notifyDashboard();
   }
 
-  // ── Filter Events ─────────────────────────────────────────────────────────
+  // ── Filter events ──────────────────────────────────────────────────────────
 
   const filteredEvents =
     filterType === "all"
       ? events
-      : events.filter((event) => event.type === filterType);
+      : events.filter(
+          (event) => event.type === filterType
+        );
 
-  // ── UI ────────────────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-5xl mx-auto">
 
-      {/* ── Header ── */}
+      {/* Header */}
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -268,19 +267,15 @@ export default function CalendarPage() {
         </p>
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-
-        {/* Event Count */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
         <span className="text-xs text-gray-400">
           Showing {filteredEvents.length} of {events.length} events
         </span>
 
         <div className="flex gap-2">
-
-          {/* Filter */}
 
           <select
             value={filterType}
@@ -290,78 +285,44 @@ export default function CalendarPage() {
               )
             }
             className="
-              px-3 py-2.5
-              rounded-xl
-              border border-gray-200
-              bg-white
+              rounded-xl border border-gray-200
+              bg-white px-3 py-2.5
               text-sm text-gray-700
               focus:outline-none
-              focus:ring-2
-              focus:ring-blue-300
+              focus:ring-2 focus:ring-blue-300
             "
           >
-            <option value="all">
-              All Types
-            </option>
-
-            <option value="academic">
-              📚 Academic
-            </option>
-
-            <option value="social">
-              🎉 Social
-            </option>
-
-            <option value="sports">
-              ⚽ Sports
-            </option>
-
-            <option value="other">
-              📌 Other
-            </option>
+            <option value="all">All Types</option>
+            <option value="academic">📚 Academic</option>
+            <option value="social">🎉 Social</option>
+            <option value="sports">⚽ Sports</option>
+            <option value="other">📌 Other</option>
           </select>
-
-          {/* New Event */}
 
           <button
             onClick={() =>
               setShowCreateForm(!showCreateForm)
             }
             className="
-              flex items-center gap-2
-              px-4 py-2.5
-              bg-blue-500 hover:bg-blue-600
-              text-white text-sm font-medium
-              rounded-xl
-              transition-colors duration-200
+              flex items-center gap-2 rounded-xl
+              bg-blue-500 px-4 py-2.5
+              text-sm font-medium text-white
+              transition-colors hover:bg-blue-600
             "
           >
-            <span className="text-base">
-              ＋
-            </span>
-
-            {showCreateForm
-              ? "Close"
-              : "New Event"}
+            ＋
+            {showCreateForm ? "Close" : "New Event"}
           </button>
 
         </div>
-
       </div>
 
-      {/* ── Create Event Form ── */}
+      {/* Create Event Form */}
 
       {showCreateForm && (
-        <div className="
-          mb-6
-          bg-white
-          border border-gray-200
-          rounded-2xl
-          p-6
-          shadow-sm
-        ">
+        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 
-          <h2 className="text-lg font-semibold text-gray-800 mb-5">
+          <h2 className="mb-5 text-lg font-semibold text-gray-800">
             ✨ Create New Event
           </h2>
 
@@ -373,14 +334,11 @@ export default function CalendarPage() {
             }
             placeholder="Event title..."
             className="
-              w-full mb-3
-              px-4 py-2.5
-              rounded-xl
+              mb-3 w-full rounded-xl
               border border-gray-200
-              text-sm text-gray-800
+              px-4 py-2.5 text-sm text-gray-800
               placeholder-gray-400
-              focus:outline-none
-              focus:ring-2
+              focus:outline-none focus:ring-2
               focus:ring-blue-300
             "
           />
@@ -392,13 +350,10 @@ export default function CalendarPage() {
               setNewDate(e.target.value)
             }
             className="
-              w-full mb-3
-              px-4 py-2.5
-              rounded-xl
+              mb-3 w-full rounded-xl
               border border-gray-200
-              text-sm text-gray-800
-              focus:outline-none
-              focus:ring-2
+              px-4 py-2.5 text-sm text-gray-800
+              focus:outline-none focus:ring-2
               focus:ring-blue-300
             "
           />
@@ -410,13 +365,10 @@ export default function CalendarPage() {
               setNewTime(e.target.value)
             }
             className="
-              w-full mb-3
-              px-4 py-2.5
-              rounded-xl
+              mb-3 w-full rounded-xl
               border border-gray-200
-              text-sm text-gray-800
-              focus:outline-none
-              focus:ring-2
+              px-4 py-2.5 text-sm text-gray-800
+              focus:outline-none focus:ring-2
               focus:ring-blue-300
             "
           />
@@ -429,31 +381,17 @@ export default function CalendarPage() {
               )
             }
             className="
-              w-full mb-5
-              px-4 py-2.5
-              rounded-xl
+              mb-5 w-full rounded-xl
               border border-gray-200
-              text-sm text-gray-800
-              focus:outline-none
-              focus:ring-2
+              px-4 py-2.5 text-sm text-gray-800
+              focus:outline-none focus:ring-2
               focus:ring-blue-300
             "
           >
-            <option value="academic">
-              📚 Academic
-            </option>
-
-            <option value="social">
-              🎉 Social
-            </option>
-
-            <option value="sports">
-              ⚽ Sports
-            </option>
-
-            <option value="other">
-              📌 Other
-            </option>
+            <option value="academic">📚 Academic</option>
+            <option value="social">🎉 Social</option>
+            <option value="sports">⚽ Sports</option>
+            <option value="other">📌 Other</option>
           </select>
 
           <div className="flex justify-end gap-2">
@@ -463,11 +401,9 @@ export default function CalendarPage() {
                 setShowCreateForm(false)
               }
               className="
-                px-4 py-2
-                text-sm rounded-lg
-                bg-gray-100
+                rounded-lg bg-gray-100
+                px-4 py-2 text-sm text-gray-600
                 hover:bg-gray-200
-                text-gray-600
               "
             >
               Cancel
@@ -476,45 +412,33 @@ export default function CalendarPage() {
             <button
               onClick={createEvent}
               className="
-                px-4 py-2
-                text-sm rounded-lg
-                bg-blue-500
+                rounded-lg bg-blue-500
+                px-4 py-2 text-sm font-medium text-white
                 hover:bg-blue-600
-                text-white
-                font-medium
               "
             >
               Create Event
             </button>
 
           </div>
-
         </div>
       )}
 
-      {/* ── Events ── */}
+      {/* Events */}
 
       <div className="space-y-4">
 
         {filteredEvents.length === 0 ? (
 
-          <div className="
-            bg-white
-            border border-gray-200
-            rounded-2xl
-            p-10
-            text-center
-          ">
+          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
 
-            <div className="text-4xl mb-3">
-              📅
-            </div>
+            <div className="mb-3 text-4xl">📅</div>
 
             <h2 className="text-lg font-semibold text-gray-700">
               No events found
             </h2>
 
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="mt-1 text-sm text-gray-400">
               Try changing the filter or create a new event.
             </p>
 
@@ -532,23 +456,15 @@ export default function CalendarPage() {
                 key={event.id}
                 className="
                   flex items-center gap-4
-                  bg-white
-                  border border-gray-200
-                  rounded-2xl
-                  p-5
-                  shadow-sm
-                  hover:shadow-md
-                  transition-shadow duration-200
+                  rounded-2xl border border-gray-200
+                  bg-white p-5 shadow-sm
+                  transition-shadow hover:shadow-md
                 "
               >
-
-                {/* Icon */}
 
                 <div className="text-3xl">
                   {emoji}
                 </div>
-
-                {/* Event Information */}
 
                 <div className="flex-1">
 
@@ -556,7 +472,7 @@ export default function CalendarPage() {
                     {event.title}
                   </h2>
 
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="mt-1 text-sm text-gray-500">
                     📅 {formatDate(event.date)}
                   </p>
 
@@ -566,38 +482,32 @@ export default function CalendarPage() {
 
                 </div>
 
-                {/* Type */}
-
                 <span
                   className={`
-                    hidden sm:block
-                    text-xs font-medium
+                    hidden rounded-full
                     px-3 py-1.5
-                    rounded-full
-                    capitalize
+                    text-xs font-medium capitalize
+                    sm:block
                     ${badge}
                   `}
                 >
                   {event.type}
                 </span>
 
-                {/* Edit */}
-
                 <button
-                  onClick={() => startEditing(event)}
+                  onClick={() =>
+                    startEditing(event)
+                  }
                   aria-label={`Edit event: ${event.title}`}
                   className="
-                    p-2 rounded-lg
+                    rounded-lg p-2
                     text-gray-300
-                    hover:text-blue-500
                     hover:bg-blue-50
-                    transition-colors
+                    hover:text-blue-500
                   "
                 >
                   ✏️
                 </button>
-
-                {/* Delete */}
 
                 <button
                   onClick={() =>
@@ -605,11 +515,10 @@ export default function CalendarPage() {
                   }
                   aria-label={`Delete event: ${event.title}`}
                   className="
-                    p-2 rounded-lg
+                    rounded-lg p-2
                     text-gray-300
-                    hover:text-red-500
                     hover:bg-red-50
-                    transition-colors
+                    hover:text-red-500
                   "
                 >
                   🗑️
@@ -618,31 +527,26 @@ export default function CalendarPage() {
               </div>
             );
           })
-
         )}
 
       </div>
 
-      {/* ── Edit Event Modal ── */}
+      {/* Edit Modal */}
 
       {editingId !== null && (
-
         <div className="
           fixed inset-0 z-50
           flex items-center justify-center
-          bg-black/40
-          p-4
+          bg-black/40 p-4
         ">
 
           <div className="
             w-full max-w-lg
-            bg-white
-            rounded-2xl
-            p-6
-            shadow-xl
+            rounded-2xl bg-white
+            p-6 shadow-xl
           ">
 
-            <h2 className="text-xl font-semibold text-gray-800 mb-5">
+            <h2 className="mb-5 text-xl font-semibold text-gray-800">
               ✏️ Edit Event
             </h2>
 
@@ -654,13 +558,10 @@ export default function CalendarPage() {
               }
               placeholder="Event title..."
               className="
-                w-full mb-3
-                px-4 py-2.5
-                rounded-xl
+                mb-3 w-full rounded-xl
                 border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2
+                px-4 py-2.5 text-sm text-gray-800
+                focus:outline-none focus:ring-2
                 focus:ring-blue-300
               "
             />
@@ -672,13 +573,10 @@ export default function CalendarPage() {
                 setEditingDate(e.target.value)
               }
               className="
-                w-full mb-3
-                px-4 py-2.5
-                rounded-xl
+                mb-3 w-full rounded-xl
                 border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2
+                px-4 py-2.5 text-sm text-gray-800
+                focus:outline-none focus:ring-2
                 focus:ring-blue-300
               "
             />
@@ -690,13 +588,10 @@ export default function CalendarPage() {
                 setEditingTime(e.target.value)
               }
               className="
-                w-full mb-3
-                px-4 py-2.5
-                rounded-xl
+                mb-3 w-full rounded-xl
                 border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2
+                px-4 py-2.5 text-sm text-gray-800
+                focus:outline-none focus:ring-2
                 focus:ring-blue-300
               "
             />
@@ -709,31 +604,17 @@ export default function CalendarPage() {
                 )
               }
               className="
-                w-full mb-5
-                px-4 py-2.5
-                rounded-xl
+                mb-5 w-full rounded-xl
                 border border-gray-200
-                text-sm text-gray-800
-                focus:outline-none
-                focus:ring-2
+                px-4 py-2.5 text-sm text-gray-800
+                focus:outline-none focus:ring-2
                 focus:ring-blue-300
               "
             >
-              <option value="academic">
-                📚 Academic
-              </option>
-
-              <option value="social">
-                🎉 Social
-              </option>
-
-              <option value="sports">
-                ⚽ Sports
-              </option>
-
-              <option value="other">
-                📌 Other
-              </option>
+              <option value="academic">📚 Academic</option>
+              <option value="social">🎉 Social</option>
+              <option value="sports">⚽ Sports</option>
+              <option value="other">📌 Other</option>
             </select>
 
             <div className="flex justify-end gap-2">
@@ -741,11 +622,9 @@ export default function CalendarPage() {
               <button
                 onClick={cancelEdit}
                 className="
-                  px-4 py-2
-                  text-sm rounded-lg
-                  bg-gray-100
+                  rounded-lg bg-gray-100
+                  px-4 py-2 text-sm text-gray-600
                   hover:bg-gray-200
-                  text-gray-600
                 "
               >
                 Cancel
@@ -754,12 +633,9 @@ export default function CalendarPage() {
               <button
                 onClick={saveEdit}
                 className="
-                  px-4 py-2
-                  text-sm rounded-lg
-                  bg-blue-500
+                  rounded-lg bg-blue-500
+                  px-4 py-2 text-sm font-medium text-white
                   hover:bg-blue-600
-                  text-white
-                  font-medium
                 "
               >
                 Save Changes
@@ -768,7 +644,6 @@ export default function CalendarPage() {
             </div>
 
           </div>
-
         </div>
       )}
 

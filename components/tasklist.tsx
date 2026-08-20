@@ -1,10 +1,6 @@
-// components/TaskList.tsx
-
 "use client";
 
-import { useState } from "react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useEffect, useState } from "react";
 
 type Task = {
   id: number;
@@ -12,50 +8,109 @@ type Task = {
   completed: boolean;
 };
 
-// ─── Initial Data ─────────────────────────────────────────────────────────────
-
 const initialTasks: Task[] = [
-  { id: 1, title: "Finish math homework",         completed: true  },
-  { id: 2, title: "Read chapter 4 of Biology",    completed: false },
-  { id: 3, title: "Prepare English presentation", completed: false },
-  { id: 4, title: "Review lecture notes",         completed: true  },
+  {
+    id: 1,
+    title: "Finish math homework",
+    completed: true,
+  },
+  {
+    id: 2,
+    title: "Read chapter 4 of Biology",
+    completed: false,
+  },
+  {
+    id: 3,
+    title: "Prepare English presentation",
+    completed: false,
+  },
+  {
+    id: 4,
+    title: "Review lecture notes",
+    completed: true,
+  },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function TaskList() {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
 
-  // ── State ───────────────────────────────────────────────────────────────────
+  const [inputValue, setInputValue] = useState("");
 
-  const [tasks,      setTasks     ] = useState<Task[]>(initialTasks);
-  const [inputValue, setInputValue] = useState<string>("");
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
 
-  // Tracks WHICH task is currently being edited (null = no task is being edited)
-  const [editingId,    setEditingId   ] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
-  // Tracks the live text inside the edit input field
-  const [editingTitle, setEditingTitle] = useState<string>("");
+  // ── Load tasks ────────────────────────────────────────────────────────────
 
-  // ── Toggle Task ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const savedTasks = localStorage.getItem(
+      "student-life-tasks"
+    );
 
-  function toggleTask(id: number) {
-    // Do not allow toggling while a task is being edited
-    if (editingId !== null) return;
+    if (savedTasks) {
+      try {
+        const parsedTasks: Task[] = JSON.parse(savedTasks);
+        setTasks(parsedTasks);
+      } catch {
+        console.log("Could not load saved tasks.");
+      }
+    }
 
-    setTasks(
-      tasks.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
-      )
+    setTasksLoaded(true);
+  }, []);
+
+  // ── Save tasks ────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!tasksLoaded) {
+      return;
+    }
+
+    localStorage.setItem(
+      "student-life-tasks",
+      JSON.stringify(tasks)
+    );
+  }, [tasks, tasksLoaded]);
+
+  // ── Dashboard notification ───────────────────────────────────────────────
+
+  function notifyDashboard() {
+    window.dispatchEvent(
+      new Event("student-dashboard-updated")
     );
   }
 
-  // ── Add Task ────────────────────────────────────────────────────────────────
+  // ── Toggle ────────────────────────────────────────────────────────────────
+
+  function toggleTask(id: number) {
+    if (editingId !== null) {
+      return;
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              completed: !task.completed,
+            }
+          : task
+      )
+    );
+
+    notifyDashboard();
+  }
+
+  // ── Add ───────────────────────────────────────────────────────────────────
 
   function addTask() {
     const trimmed = inputValue.trim();
-    if (trimmed === "") return;
+
+    if (trimmed === "") {
+      return;
+    }
 
     const newTask: Task = {
       id: Date.now(),
@@ -63,102 +118,155 @@ export default function TaskList() {
       completed: false,
     };
 
-    setTasks([...tasks, newTask]);
+    setTasks((currentTasks) => [
+      ...currentTasks,
+      newTask,
+    ]);
+
     setInputValue("");
+
+    notifyDashboard();
   }
 
-  // ── Delete Task ─────────────────────────────────────────────────────────────
+  // ── Delete ────────────────────────────────────────────────────────────────
 
-  function deleteTask(e: React.MouseEvent<HTMLButtonElement>, id: number) {
+  function deleteTask(
+    e: React.MouseEvent<HTMLButtonElement>,
+    id: number
+  ) {
     e.stopPropagation();
-    setTasks(tasks.filter((task) => task.id !== id));
+
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== id)
+    );
+
+    if (editingId === id) {
+      cancelEdit();
+    }
+
+    notifyDashboard();
   }
 
-  // ── Edit Task — Step 1: Start editing ───────────────────────────────────────
+  // ── Start editing ────────────────────────────────────────────────────────
 
-  function startEditing(e: React.MouseEvent<HTMLButtonElement>, task: Task) {
-    e.stopPropagation(); // Prevent the click from toggling the task
+  function startEditing(
+    e: React.MouseEvent<HTMLButtonElement>,
+    task: Task
+  ) {
+    e.stopPropagation();
 
-    setEditingId(task.id);       // Remember WHICH task is being edited
-    setEditingTitle(task.title); // Pre-fill the edit input with the current title
+    setEditingId(task.id);
+    setEditingTitle(task.title);
   }
 
-  // ── Edit Task — Step 2: Save the new title ──────────────────────────────────
+  // ── Save editing ─────────────────────────────────────────────────────────
 
   function saveEdit(id: number) {
     const trimmed = editingTitle.trim();
-    if (trimmed === "") return; // Do not save an empty title
 
-    setTasks(
-      tasks.map((task) =>
+    if (trimmed === "") {
+      return;
+    }
+
+    setTasks((currentTasks) =>
+      currentTasks.map((task) =>
         task.id === id
-          ? { ...task, title: trimmed } // Update title, keep everything else
+          ? {
+              ...task,
+              title: trimmed,
+            }
           : task
       )
     );
 
-    cancelEdit(); // Clean up editing state after saving
+    cancelEdit();
+    notifyDashboard();
   }
 
-  // ── Edit Task — Step 3: Cancel without saving ───────────────────────────────
+  // ── Cancel editing ──────────────────────────────────────────────────────
 
   function cancelEdit() {
-    setEditingId(null);    // No task is being edited anymore
-    setEditingTitle("");   // Clear the temporary edit text
+    setEditingId(null);
+    setEditingTitle("");
   }
 
-  // ── Handle Enter and Escape keys in the edit input ──────────────────────────
+  // ── Keyboard handlers ────────────────────────────────────────────────────
+
+  function handleKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) {
+    if (e.key === "Enter") {
+      addTask();
+    }
+  }
 
   function handleEditKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>,
     id: number
   ) {
-    if (e.key === "Enter")  saveEdit(id);
-    if (e.key === "Escape") cancelEdit();
+    if (e.key === "Enter") {
+      saveEdit(id);
+    }
+
+    if (e.key === "Escape") {
+      cancelEdit();
+    }
   }
 
-  // ── Handle Enter key in the add input ───────────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") addTask();
-  }
+  const completedCount = tasks.filter(
+    (task) => task.completed
+  ).length;
 
-  // ── Completed Count ─────────────────────────────────────────────────────────
+  const progress =
+    tasks.length === 0
+      ? 0
+      : (completedCount / tasks.length) * 100;
 
-  const completedCount = tasks.filter((task) => task.completed).length;
-
-  // ─── UI ───────────────────────────────────────────────────────────────────
+  // ── UI ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl font-semibold text-gray-800">
-          ✅ Task List
-        </h2>
-        <span className="text-sm text-gray-500">
-          {completedCount} / {tasks.length} completed
+      {/* Header */}
+
+      <div className="mb-5 flex items-center justify-between">
+
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">
+            ✅ Task List
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            {completedCount} of {tasks.length} completed
+          </p>
+        </div>
+
+        <span className="text-2xl">
+          📋
         </span>
+
       </div>
 
-      {/* ── Progress Bar ── */}
-      <div className="w-full bg-gray-100 rounded-full h-2 mb-5">
+      {/* Progress */}
+
+      <div className="mb-5 h-2 w-full rounded-full bg-gray-100">
         <div
-          className="bg-green-400 h-2 rounded-full transition-all duration-500"
+          className="h-2 rounded-full bg-green-400 transition-all duration-500"
           style={{
-            width: tasks.length === 0
-              ? "0%"
-              : `${(completedCount / tasks.length) * 100}%`,
+            width: `${progress}%`,
           }}
         />
       </div>
 
-      {/* ── Task Items ── */}
-      <ul className="space-y-3 mb-5">
+      {/* Tasks */}
+
+      <ul className="mb-5 space-y-3">
+
         {tasks.length === 0 ? (
 
-          <li className="text-center text-sm text-gray-400 py-6">
+          <li className="py-6 text-center text-sm text-gray-400">
             No tasks yet. Add one below! 👇
           </li>
 
@@ -166,92 +274,86 @@ export default function TaskList() {
 
           tasks.map((task) => {
 
-            // Is THIS specific task currently being edited?
-            const isEditing = editingId === task.id;
+            const isEditing =
+              editingId === task.id;
 
             return (
               <li
                 key={task.id}
                 onClick={() => toggleTask(task.id)}
                 className={`
-                  flex items-center gap-3 p-4 rounded-xl border
-                  transition-colors duration-200
-                  ${isEditing
-                    ? "bg-blue-50 border-blue-200 cursor-default"
-                    : task.completed
-                      ? "bg-green-50 border-green-200 cursor-pointer"
-                      : "bg-gray-50 border-gray-100 cursor-pointer hover:bg-gray-100"
+                  flex items-center gap-3 rounded-xl
+                  border p-4 transition-colors
+                  ${
+                    isEditing
+                      ? "cursor-default border-blue-200 bg-blue-50"
+                      : task.completed
+                        ? "cursor-pointer border-green-200 bg-green-50"
+                        : "cursor-pointer border-gray-100 bg-gray-50 hover:bg-gray-100"
                   }
                 `}
               >
 
-                {/* ── Checkbox Circle ── */}
+                {/* Checkbox */}
+
                 <div
                   className={`
-                    w-5 h-5 rounded-full border-2 flex items-center
-                    justify-center flex-shrink-0 transition-colors duration-200
-                    ${task.completed && !isEditing
-                      ? "bg-green-400 border-green-400"
-                      : "border-gray-300"
+                    flex h-5 w-5 flex-shrink-0
+                    items-center justify-center
+                    rounded-full border-2
+                    ${
+                      task.completed
+                        ? "border-green-400 bg-green-400 text-white"
+                        : "border-gray-300"
                     }
                   `}
                 >
-                  {task.completed && !isEditing && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
+                  {task.completed && "✓"}
                 </div>
 
-                {/* ── View Mode: show title + edit + delete buttons ── */}
+                {/* View mode */}
+
                 {!isEditing ? (
+
                   <>
-                    {/* Task Title */}
                     <span
                       className={`
-                        flex-1 text-sm transition-all duration-200
-                        ${task.completed
-                          ? "line-through text-gray-400"
-                          : "text-gray-700"
+                        flex-1 text-sm
+                        ${
+                          task.completed
+                            ? "text-gray-400 line-through"
+                            : "text-gray-700"
                         }
                       `}
                     >
                       {task.title}
                     </span>
 
-                    {/* Edit Button */}
                     <button
-                      onClick={(e) => startEditing(e, task)}
+                      onClick={(e) =>
+                        startEditing(e, task)
+                      }
                       aria-label={`Edit task: ${task.title}`}
                       className="
-                        p-1.5 rounded-lg text-gray-300
-                        hover:text-blue-400 hover:bg-blue-50
-                        transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-blue-300
+                        rounded-lg p-1.5
+                        text-gray-300
+                        hover:bg-blue-50
+                        hover:text-blue-500
                       "
                     >
                       ✏️
                     </button>
 
-                    {/* Delete Button */}
                     <button
-                      onClick={(e) => deleteTask(e, task.id)}
+                      onClick={(e) =>
+                        deleteTask(e, task.id)
+                      }
                       aria-label={`Delete task: ${task.title}`}
                       className="
-                        p-1.5 rounded-lg text-gray-300
-                        hover:text-red-400 hover:bg-red-50
-                        transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-red-300
+                        rounded-lg p-1.5
+                        text-gray-300
+                        hover:bg-red-50
+                        hover:text-red-500
                       "
                     >
                       🗑️
@@ -260,50 +362,58 @@ export default function TaskList() {
 
                 ) : (
 
-                  /* ── Edit Mode: show input + Save + Cancel ── */
                   <div
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) =>
+                      e.stopPropagation()
+                    }
                     className="flex flex-1 items-center gap-2"
                   >
 
-                    {/* Edit Input */}
                     <input
+                      autoFocus
                       type="text"
                       value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onKeyDown={(e) => handleEditKeyDown(e, task.id)}
-                      autoFocus
+                      onChange={(e) =>
+                        setEditingTitle(e.target.value)
+                      }
+                      onKeyDown={(e) =>
+                        handleEditKeyDown(e, task.id)
+                      }
                       className="
-                        flex-1 text-sm px-3 py-1.5 rounded-lg border
-                        border-blue-300 bg-white text-gray-800
-                        focus:outline-none focus:ring-2 focus:ring-blue-300
-                        transition-all duration-200
+                        flex-1 rounded-lg
+                        border border-blue-300
+                        bg-white px-3 py-2
+                        text-sm text-gray-800
+                        outline-none
+                        focus:ring-2 focus:ring-blue-300
                       "
                     />
 
-                    {/* Save Button */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); saveEdit(task.id); }}
-                      aria-label="Save changes"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveEdit(task.id);
+                      }}
                       className="
-                        px-3 py-1.5 text-xs font-medium rounded-lg
-                        bg-blue-400 hover:bg-blue-500 text-white
-                        transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-blue-300
+                        rounded-lg bg-blue-500
+                        px-3 py-2
+                        text-xs font-medium text-white
+                        hover:bg-blue-600
                       "
                     >
                       Save
                     </button>
 
-                    {/* Cancel Button */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
-                      aria-label="Cancel editing"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEdit();
+                      }}
                       className="
-                        px-3 py-1.5 text-xs font-medium rounded-lg
-                        bg-gray-100 hover:bg-gray-200 text-gray-600
-                        transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-gray-300
+                        rounded-lg bg-gray-100
+                        px-3 py-2
+                        text-xs font-medium text-gray-600
+                        hover:bg-gray-200
                       "
                     >
                       Cancel
@@ -316,33 +426,46 @@ export default function TaskList() {
             );
           })
         )}
+
       </ul>
 
-      {/* ── Add Task Input ── */}
-      <div className="flex gap-2 pt-4 border-t border-gray-100">
+      {/* Add Task */}
+
+      <div className="flex gap-2 border-t border-gray-100 pt-4">
+
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) =>
+            setInputValue(e.target.value)
+          }
           onKeyDown={handleKeyDown}
           placeholder="Add a new task..."
           className="
-            flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200
-            bg-gray-50 text-gray-800 placeholder-gray-400
-            focus:outline-none focus:ring-2 focus:ring-green-300
-            focus:border-transparent transition-all duration-200
+            flex-1 rounded-xl
+            border border-gray-200
+            bg-gray-50
+            px-4 py-2.5
+            text-sm text-gray-800
+            outline-none
+            focus:ring-2 focus:ring-blue-300
           "
         />
+
         <button
           onClick={addTask}
           className="
-            px-4 py-2.5 bg-green-400 hover:bg-green-500 text-white
-            text-sm font-medium rounded-xl transition-colors duration-200
-            focus:outline-none focus:ring-2 focus:ring-green-300
+            rounded-xl
+            bg-blue-500
+            px-4 py-2.5
+            text-sm font-medium
+            text-white
+            hover:bg-blue-600
           "
         >
           Add
         </button>
+
       </div>
 
     </div>
