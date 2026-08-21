@@ -1,49 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Note = {
-  id: number;
-  title: string;
-  content: string;
-  subject: string;
-  date: string;
-  color: string;
-};
-
-// ─── Example Notes ────────────────────────────────────────────────────────────
-
-const initialNotes: Note[] = [
-  {
-    id: 1,
-    title: "Probability Formulas",
-    content:
-      "P(A or B) = P(A) + P(B) - P(A and B). Independent events: P(A and B) = P(A) × P(B). Complement rule: P(not A) = 1 - P(A).",
-    subject: "Mathematics",
-    date: "2026-08-06",
-    color: "bg-blue-50 border-blue-200",
-  },
-  {
-    id: 2,
-    title: "Vocabulary and Grammar",
-    content:
-      "Der/Die/Das — always learn nouns with their article. Modal verbs: können, müssen, wollen, sollen, dürfen, mögen.",
-    subject: "German",
-    date: "2026-08-06",
-    color: "bg-yellow-50 border-yellow-200",
-  },
-  {
-    id: 3,
-    title: "React and Next.js Concepts",
-    content:
-      "useState stores data that changes over time. Components are functions that return JSX. Next.js App Router uses folders as routes.",
-    subject: "Programming",
-    date: "2026-08-06",
-    color: "bg-purple-50 border-purple-200",
-  },
-];
+import { useState } from "react";
+import { useAppData } from "@/components/appdataprovider";
 
 // ─── Subject Styles ──────────────────────────────────────────────────────────
 
@@ -54,7 +12,7 @@ const subjectStyles: Record<string, string> = {
   Other: "bg-gray-100 text-gray-700",
 };
 
-// ─── Note Colors ─────────────────────────────────────────────────────────────
+// ─── Subject Colors ──────────────────────────────────────────────────────────
 
 const subjectColors: Record<string, string> = {
   Mathematics: "bg-blue-50 border-blue-200",
@@ -75,68 +33,40 @@ function formatDate(dateString: string): string {
   });
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Notes Page ───────────────────────────────────────────────────────────────
 
 export default function NotesPage() {
-  // ── Notes State ────────────────────────────────────────────────────────────
+  // ── Shared Notes Data ─────────────────────────────────────────────────────
 
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
+  const { notes, setNotes } = useAppData();
 
-  // This prevents us from saving the initial notes before
-  // we have finished checking localStorage.
-  const [notesLoaded, setNotesLoaded] = useState(false);
-
-  // ── Search State ───────────────────────────────────────────────────────────
+  // ── Search ────────────────────────────────────────────────────────────────
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ── Create Form State ──────────────────────────────────────────────────────
+  // ── Create Form ───────────────────────────────────────────────────────────
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newSubject, setNewSubject] = useState("Mathematics");
 
-  // ── Edit State ─────────────────────────────────────────────────────────────
+  // ── Edit State ────────────────────────────────────────────────────────────
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingTitle, setEditingTitle] = useState("");
-  const [editingContent, setEditingContent] = useState("");
-  const [editingSubject, setEditingSubject] = useState("");
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
 
-  // ─── Load Notes From localStorage ─────────────────────────────────────────
+  const [editingTitle, setEditingTitle] =
+    useState("");
 
-  useEffect(() => {
-    const savedNotes = localStorage.getItem("student-life-notes");
+  const [editingContent, setEditingContent] =
+    useState("");
 
-    if (savedNotes) {
-      try {
-        const parsedNotes: Note[] = JSON.parse(savedNotes);
-        setNotes(parsedNotes);
-      } catch {
-        console.log("Could not load saved notes.");
-      }
-    }
+  const [editingSubject, setEditingSubject] =
+    useState("Mathematics");
 
-    // Loading is finished.
-    setNotesLoaded(true);
-  }, []);
-
-  // ─── Save Notes To localStorage ───────────────────────────────────────────
-
-  useEffect(() => {
-    // Do NOT save until we have finished loading.
-    if (!notesLoaded) {
-      return;
-    }
-
-    localStorage.setItem(
-      "student-life-notes",
-      JSON.stringify(notes)
-    );
-  }, [notes, notesLoaded]);
-
-  // ─── Create Note ──────────────────────────────────────────────────────────
+  // ── Create Note ───────────────────────────────────────────────────────────
 
   function createNote() {
     const title = newTitle.trim();
@@ -146,12 +76,14 @@ export default function NotesPage() {
       return;
     }
 
-    const newNote: Note = {
+    const newNote = {
       id: Date.now(),
       title,
       content,
       subject: newSubject,
-      date: new Date().toISOString().split("T")[0],
+      date: new Date()
+        .toISOString()
+        .split("T")[0],
       color:
         subjectColors[newSubject] ??
         "bg-gray-50 border-gray-200",
@@ -168,16 +100,18 @@ export default function NotesPage() {
     setShowCreateForm(false);
   }
 
-  // ─── Start Editing ───────────────────────────────────────────────────────
+  // ── Start Editing ─────────────────────────────────────────────────────────
 
-  function startEditing(note: Note) {
+  function startEditing(
+    note: (typeof notes)[number]
+  ) {
     setEditingId(note.id);
     setEditingTitle(note.title);
     setEditingContent(note.content);
     setEditingSubject(note.subject);
   }
 
-  // ─── Save Edit ───────────────────────────────────────────────────────────
+  // ── Save Edit ─────────────────────────────────────────────────────────────
 
   function saveEdit() {
     if (editingId === null) {
@@ -210,20 +144,22 @@ export default function NotesPage() {
     cancelEdit();
   }
 
-  // ─── Cancel Edit ─────────────────────────────────────────────────────────
+  // ── Cancel Edit ───────────────────────────────────────────────────────────
 
   function cancelEdit() {
     setEditingId(null);
     setEditingTitle("");
     setEditingContent("");
-    setEditingSubject("");
+    setEditingSubject("Mathematics");
   }
 
-  // ─── Delete Note ─────────────────────────────────────────────────────────
+  // ── Delete Note ───────────────────────────────────────────────────────────
 
   function deleteNote(id: number) {
     setNotes((currentNotes) =>
-      currentNotes.filter((note) => note.id !== id)
+      currentNotes.filter(
+        (note) => note.id !== id
+      )
     );
 
     if (editingId === id) {
@@ -231,24 +167,26 @@ export default function NotesPage() {
     }
   }
 
-  // ─── Search ───────────────────────────────────────────────────────────────
+  // ── Search ─────────────────────────────────────────────────────────────────
+
+  const search = searchQuery
+    .toLowerCase()
+    .trim();
 
   const filteredNotes = notes.filter((note) => {
-    const query = searchQuery.toLowerCase();
-
     return (
-      note.title.toLowerCase().includes(query) ||
-      note.content.toLowerCase().includes(query) ||
-      note.subject.toLowerCase().includes(query)
+      note.title.toLowerCase().includes(search) ||
+      note.content.toLowerCase().includes(search) ||
+      note.subject.toLowerCase().includes(search)
     );
   });
 
-  // ─── UI ──────────────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-5xl mx-auto">
 
-      {/* ── Page Header ── */}
+      {/* Header */}
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -261,92 +199,139 @@ export default function NotesPage() {
         </p>
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-
-        {/* Search */}
+      <div className="
+        mb-6 flex flex-col gap-3
+        sm:flex-row
+      ">
 
         <div className="relative flex-1">
 
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <span className="
+            absolute left-3 top-1/2
+            -translate-y-1/2
+            text-gray-400
+          ">
             🔍
           </span>
 
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) =>
+              setSearchQuery(e.target.value)
+            }
             placeholder="Search notes..."
             className="
-              w-full pl-9 pr-4 py-2.5 text-sm rounded-xl
-              border border-gray-200 bg-white text-gray-800
+              w-full rounded-xl
+              border border-gray-200
+              bg-white
+              pl-9 pr-4 py-2.5
+              text-sm text-gray-800
               placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-blue-300
-              transition-all duration-200
+              focus:outline-none
+              focus:ring-2 focus:ring-blue-300
             "
           />
 
         </div>
 
-        {/* New Note */}
-
         <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
+          onClick={() =>
+            setShowCreateForm(
+              !showCreateForm
+            )
+          }
           className="
-            flex items-center justify-center gap-2
-            px-5 py-2.5 bg-blue-500 hover:bg-blue-600
-            text-white text-sm font-medium rounded-xl
-            transition-colors duration-200
+            flex items-center
+            justify-center gap-2
+            rounded-xl
+            bg-blue-500
+            px-5 py-2.5
+            text-sm font-medium
+            text-white
+            hover:bg-blue-600
           "
         >
-          <span>＋</span>
-          {showCreateForm ? "Close" : "New Note"}
+          ＋
+          {showCreateForm
+            ? "Close"
+            : "New Note"}
         </button>
 
       </div>
 
-      {/* ── Create Note Form ── */}
+      {/* Create Form */}
 
       {showCreateForm && (
-        <div className="mb-8 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="
+          mb-8
+          rounded-2xl
+          border border-gray-200
+          bg-white
+          p-6
+          shadow-sm
+        ">
 
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          <h2 className="
+            mb-4
+            text-lg font-semibold
+            text-gray-800
+          ">
             ✨ Create New Note
           </h2>
 
           <input
             type="text"
             value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
+            onChange={(e) =>
+              setNewTitle(e.target.value)
+            }
             placeholder="Note title..."
             className="
-              w-full mb-3 px-4 py-2.5 rounded-xl
-              border border-gray-200 text-sm text-gray-800
-              focus:outline-none focus:ring-2 focus:ring-blue-300
+              mb-3 w-full
+              rounded-xl
+              border border-gray-200
+              px-4 py-2.5
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2 focus:ring-blue-300
             "
           />
 
           <textarea
             value={newContent}
-            onChange={(e) => setNewContent(e.target.value)}
+            onChange={(e) =>
+              setNewContent(e.target.value)
+            }
             placeholder="Write your note..."
             rows={5}
             className="
-              w-full mb-3 px-4 py-2.5 rounded-xl
-              border border-gray-200 text-sm text-gray-800
+              mb-3 w-full
               resize-none
-              focus:outline-none focus:ring-2 focus:ring-blue-300
+              rounded-xl
+              border border-gray-200
+              px-4 py-2.5
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2 focus:ring-blue-300
             "
           />
 
           <select
             value={newSubject}
-            onChange={(e) => setNewSubject(e.target.value)}
+            onChange={(e) =>
+              setNewSubject(e.target.value)
+            }
             className="
-              w-full mb-4 px-4 py-2.5 rounded-xl
-              border border-gray-200 text-sm text-gray-800
-              focus:outline-none focus:ring-2 focus:ring-blue-300
+              mb-5 w-full
+              rounded-xl
+              border border-gray-200
+              px-4 py-2.5
+              text-sm text-gray-800
+              focus:outline-none
+              focus:ring-2 focus:ring-blue-300
             "
           >
             <option>Mathematics</option>
@@ -358,11 +343,15 @@ export default function NotesPage() {
           <div className="flex justify-end gap-2">
 
             <button
-              onClick={() => setShowCreateForm(false)}
+              onClick={() =>
+                setShowCreateForm(false)
+              }
               className="
-                px-4 py-2 text-sm rounded-lg
-                bg-gray-100 hover:bg-gray-200
-                text-gray-600
+                rounded-lg
+                bg-gray-100
+                px-4 py-2
+                text-sm text-gray-600
+                hover:bg-gray-200
               "
             >
               Cancel
@@ -371,9 +360,12 @@ export default function NotesPage() {
             <button
               onClick={createNote}
               className="
-                px-4 py-2 text-sm rounded-lg
-                bg-blue-500 hover:bg-blue-600
-                text-white font-medium
+                rounded-lg
+                bg-blue-500
+                px-4 py-2
+                text-sm font-medium
+                text-white
+                hover:bg-blue-600
               "
             >
               Create Note
@@ -384,58 +376,88 @@ export default function NotesPage() {
         </div>
       )}
 
-      {/* ── Notes Count ── */}
+      {/* Count */}
 
-      <p className="text-xs text-gray-400 mb-4">
-        Showing {filteredNotes.length} of {notes.length} notes
+      <p className="
+        mb-4 text-xs text-gray-400
+      ">
+        Showing {filteredNotes.length} of{" "}
+        {notes.length} notes
       </p>
 
-      {/* ── Notes Grid ── */}
+      {/* Notes */}
 
       {filteredNotes.length === 0 ? (
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
+        <div className="
+          rounded-2xl
+          border border-gray-200
+          bg-white
+          p-10
+          text-center
+        ">
 
-          <div className="text-4xl mb-3">
+          <div className="mb-3 text-4xl">
             📝
           </div>
 
-          <h2 className="text-lg font-semibold text-gray-700">
+          <h2 className="
+            text-lg font-semibold
+            text-gray-700
+          ">
             No notes found
           </h2>
 
-          <p className="text-sm text-gray-400 mt-1">
-            Try a different search or create a new note.
+          <p className="
+            mt-1 text-sm text-gray-400
+          ">
+            Try a different search or
+            create a new note.
           </p>
 
         </div>
 
       ) : (
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="
+          grid grid-cols-1
+          gap-5
+          sm:grid-cols-2
+          lg:grid-cols-3
+        ">
 
           {filteredNotes.map((note) => (
 
             <div
               key={note.id}
               className={`
-                flex flex-col rounded-2xl border p-5
-                shadow-sm hover:shadow-md
-                transition-shadow duration-200
+                flex flex-col
+                rounded-2xl
+                border p-5
+                shadow-sm
+                hover:shadow-md
+                transition-shadow
                 ${note.color}
               `}
             >
 
-              {/* ── Card Header ── */}
+              {/* Card header */}
 
-              <div className="flex items-center justify-between mb-3">
+              <div className="
+                mb-3 flex
+                items-center
+                justify-between
+              ">
 
                 <span
                   className={`
-                    text-xs font-medium px-2.5 py-1
                     rounded-full
+                    px-2.5 py-1
+                    text-xs font-medium
                     ${
-                      subjectStyles[note.subject] ??
+                      subjectStyles[
+                        note.subject
+                      ] ??
                       "bg-gray-100 text-gray-600"
                     }
                   `}
@@ -443,51 +465,75 @@ export default function NotesPage() {
                   {note.subject}
                 </span>
 
-                <span className="text-xs text-gray-400">
+                <span className="
+                  text-xs text-gray-400
+                ">
                   {formatDate(note.date)}
                 </span>
 
               </div>
 
-              {/* ── Title ── */}
+              {/* Title */}
 
-              <h2 className="text-base font-semibold text-gray-800 mb-2">
+              <h2 className="
+                mb-2
+                text-base font-semibold
+                text-gray-800
+              ">
                 {note.title}
               </h2>
 
-              {/* ── Content ── */}
+              {/* Content */}
 
-              <p className="text-sm text-gray-600 leading-relaxed flex-1 line-clamp-4">
+              <p className="
+                flex-1
+                line-clamp-4
+                text-sm
+                leading-relaxed
+                text-gray-600
+              ">
                 {note.content}
               </p>
 
-              {/* ── Buttons ── */}
+              {/* Buttons */}
 
-              <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-black/5">
+              <div className="
+                mt-4 flex
+                items-center
+                justify-end gap-2
+                border-t border-black/5
+                pt-4
+              ">
 
                 <button
-                  onClick={() => startEditing(note)}
+                  onClick={() =>
+                    startEditing(note)
+                  }
                   className="
-                    flex items-center gap-1.5
-                    px-3 py-1.5 text-xs font-medium
-                    text-gray-600 bg-white rounded-lg
+                    rounded-lg
                     border border-gray-200
+                    bg-white
+                    px-3 py-1.5
+                    text-xs font-medium
+                    text-gray-600
                     hover:bg-gray-100
-                    transition-colors duration-200
                   "
                 >
                   ✏️ Edit
                 </button>
 
                 <button
-                  onClick={() => deleteNote(note.id)}
+                  onClick={() =>
+                    deleteNote(note.id)
+                  }
                   className="
-                    flex items-center gap-1.5
-                    px-3 py-1.5 text-xs font-medium
-                    text-red-500 bg-white rounded-lg
+                    rounded-lg
                     border border-red-200
+                    bg-white
+                    px-3 py-1.5
+                    text-xs font-medium
+                    text-red-500
                     hover:bg-red-50
-                    transition-colors duration-200
                   "
                 >
                   🗑️ Delete
@@ -496,14 +542,13 @@ export default function NotesPage() {
               </div>
 
             </div>
-
           ))}
 
         </div>
 
       )}
 
-      {/* ── Edit Modal ── */}
+      {/* Edit Modal */}
 
       {editingId !== null && (
 
@@ -515,49 +560,76 @@ export default function NotesPage() {
 
           <div className="
             w-full max-w-lg
-            bg-white rounded-2xl
-            p-6 shadow-xl
+            rounded-2xl
+            bg-white
+            p-6
+            shadow-xl
           ">
 
-            <h2 className="text-xl font-semibold text-gray-800 mb-5">
+            <h2 className="
+              mb-5
+              text-xl font-semibold
+              text-gray-800
+            ">
               ✏️ Edit Note
             </h2>
 
             <input
               type="text"
               value={editingTitle}
-              onChange={(e) => setEditingTitle(e.target.value)}
+              onChange={(e) =>
+                setEditingTitle(
+                  e.target.value
+                )
+              }
               placeholder="Note title..."
               className="
-                w-full mb-3 px-4 py-2.5
-                rounded-xl border border-gray-200
+                mb-3 w-full
+                rounded-xl
+                border border-gray-200
+                px-4 py-2.5
                 text-sm text-gray-800
-                focus:outline-none focus:ring-2 focus:ring-blue-300
+                focus:outline-none
+                focus:ring-2 focus:ring-blue-300
               "
             />
 
             <textarea
               value={editingContent}
-              onChange={(e) => setEditingContent(e.target.value)}
-              placeholder="Note content..."
+              onChange={(e) =>
+                setEditingContent(
+                  e.target.value
+                )
+              }
               rows={6}
+              placeholder="Note content..."
               className="
-                w-full mb-3 px-4 py-2.5
-                rounded-xl border border-gray-200
-                text-sm text-gray-800
+                mb-3 w-full
                 resize-none
-                focus:outline-none focus:ring-2 focus:ring-blue-300
+                rounded-xl
+                border border-gray-200
+                px-4 py-2.5
+                text-sm text-gray-800
+                focus:outline-none
+                focus:ring-2 focus:ring-blue-300
               "
             />
 
             <select
               value={editingSubject}
-              onChange={(e) => setEditingSubject(e.target.value)}
+              onChange={(e) =>
+                setEditingSubject(
+                  e.target.value
+                )
+              }
               className="
-                w-full mb-5 px-4 py-2.5
-                rounded-xl border border-gray-200
+                mb-5 w-full
+                rounded-xl
+                border border-gray-200
+                px-4 py-2.5
                 text-sm text-gray-800
-                focus:outline-none focus:ring-2 focus:ring-blue-300
+                focus:outline-none
+                focus:ring-2 focus:ring-blue-300
               "
             >
               <option>Mathematics</option>
@@ -571,9 +643,11 @@ export default function NotesPage() {
               <button
                 onClick={cancelEdit}
                 className="
-                  px-4 py-2 text-sm rounded-lg
-                  bg-gray-100 hover:bg-gray-200
-                  text-gray-600
+                  rounded-lg
+                  bg-gray-100
+                  px-4 py-2
+                  text-sm text-gray-600
+                  hover:bg-gray-200
                 "
               >
                 Cancel
@@ -582,9 +656,12 @@ export default function NotesPage() {
               <button
                 onClick={saveEdit}
                 className="
-                  px-4 py-2 text-sm rounded-lg
-                  bg-blue-500 hover:bg-blue-600
-                  text-white font-medium
+                  rounded-lg
+                  bg-blue-500
+                  px-4 py-2
+                  text-sm font-medium
+                  text-white
+                  hover:bg-blue-600
                 "
               >
                 Save Changes
@@ -595,7 +672,6 @@ export default function NotesPage() {
           </div>
 
         </div>
-
       )}
 
     </div>

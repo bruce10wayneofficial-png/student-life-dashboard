@@ -1,38 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useAppData } from "@/components/appdataprovider";
 
 import DashboardCard from "@/components/dashboardCard";
 import StudyTimer from "@/components/studytimer";
 import TaskList from "@/components/tasklist";
 import UpcomingEvents from "@/components/upcomingevents";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Task = {
-  id: number;
-  title: string;
-  completed: boolean;
-};
-
-type Note = {
-  id: number;
-  title: string;
-  content: string;
-  subject: string;
-  date: string;
-  color: string;
-};
-
-type Event = {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  type: "academic" | "social" | "sports" | "other";
-};
-
-type StudySessions = Record<string, number>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,10 +15,9 @@ function getTodayKey(): string {
 
 function getWeekStartKey(): string {
   const today = new Date();
-
   const day = today.getDay();
 
-  // Monday = start of week
+  // Monday = first day of the week
   const daysFromMonday = day === 0 ? 6 : day - 1;
 
   const monday = new Date(today);
@@ -74,113 +46,16 @@ function formatStudyTime(totalSeconds: number): string {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [studySessions, setStudySessions] =
-    useState<StudySessions>({});
+  // ── Shared application data ───────────────────────────────────────────────
 
-  // ── Load all dashboard data ───────────────────────────────────────────────
+  const {
+    tasks,
+    notes,
+    events,
+    studySessions,
+  } = useAppData();
 
-  function loadDashboardData() {
-    // Tasks
-
-    const savedTasks =
-      localStorage.getItem("student-life-tasks");
-
-    if (savedTasks) {
-      try {
-        setTasks(JSON.parse(savedTasks));
-      } catch {
-        setTasks([]);
-      }
-    } else {
-      setTasks([]);
-    }
-
-    // Notes
-
-    const savedNotes =
-      localStorage.getItem("student-life-notes");
-
-    if (savedNotes) {
-      try {
-        setNotes(JSON.parse(savedNotes));
-      } catch {
-        setNotes([]);
-      }
-    } else {
-      setNotes([]);
-    }
-
-    // Events
-
-    const savedEvents =
-      localStorage.getItem("student-life-events");
-
-    if (savedEvents) {
-      try {
-        setEvents(JSON.parse(savedEvents));
-      } catch {
-        setEvents([]);
-      }
-    } else {
-      setEvents([]);
-    }
-
-    // Study sessions
-
-    const savedSessions =
-      localStorage.getItem(
-        "student-life-study-sessions"
-      );
-
-    if (savedSessions) {
-      try {
-        setStudySessions(
-          JSON.parse(savedSessions)
-        );
-      } catch {
-        setStudySessions({});
-      }
-    } else {
-      setStudySessions({});
-    }
-  }
-
-  // ── Load on page open + listen for updates ─────────────────────────────────
-
-  useEffect(() => {
-    loadDashboardData();
-
-    function handleDashboardUpdate() {
-      loadDashboardData();
-    }
-
-    window.addEventListener(
-      "student-dashboard-updated",
-      handleDashboardUpdate
-    );
-
-    window.addEventListener(
-      "storage",
-      handleDashboardUpdate
-    );
-
-    return () => {
-      window.removeEventListener(
-        "student-dashboard-updated",
-        handleDashboardUpdate
-      );
-
-      window.removeEventListener(
-        "storage",
-        handleDashboardUpdate
-      );
-    };
-  }, []);
-
-  // ── Task statistics ───────────────────────────────────────────────────────
+  // ── Task statistics ────────────────────────────────────────────────────────
 
   const completedTasks = tasks.filter(
     (task) => task.completed
@@ -273,6 +148,8 @@ export default function DashboardPage() {
 
       <div className="mt-8 grid gap-5 sm:grid-cols-3">
 
+        {/* Today */}
+
         <div className="
           rounded-2xl
           border border-gray-200
@@ -280,6 +157,7 @@ export default function DashboardPage() {
           p-6
           shadow-sm
         ">
+
           <p className="text-sm text-gray-500">
             📅 Today
           </p>
@@ -291,7 +169,10 @@ export default function DashboardPage() {
           <p className="mt-1 text-xs text-gray-400">
             Study time today
           </p>
+
         </div>
+
+        {/* This Week */}
 
         <div className="
           rounded-2xl
@@ -300,6 +181,7 @@ export default function DashboardPage() {
           p-6
           shadow-sm
         ">
+
           <p className="text-sm text-gray-500">
             📊 This Week
           </p>
@@ -311,7 +193,10 @@ export default function DashboardPage() {
           <p className="mt-1 text-xs text-gray-400">
             Monday to today
           </p>
+
         </div>
+
+        {/* Total */}
 
         <div className="
           rounded-2xl
@@ -320,6 +205,7 @@ export default function DashboardPage() {
           p-6
           shadow-sm
         ">
+
           <p className="text-sm text-gray-500">
             🏆 Total
           </p>
@@ -331,6 +217,7 @@ export default function DashboardPage() {
           <p className="mt-1 text-xs text-gray-400">
             All recorded study time
           </p>
+
         </div>
 
       </div>
@@ -344,6 +231,8 @@ export default function DashboardPage() {
       {/* ── Quick Summary ── */}
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
+
+        {/* Task Progress */}
 
         <div className="
           rounded-2xl
@@ -381,6 +270,8 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
+        {/* Study Overview */}
 
         <div className="
           rounded-2xl
@@ -427,8 +318,11 @@ export default function DashboardPage() {
       {/* ── Main Sections ── */}
 
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
+
         <TaskList />
+
         <UpcomingEvents />
+
       </div>
 
     </div>

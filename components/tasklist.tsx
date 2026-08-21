@@ -1,39 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type Task = {
-  id: number;
-  title: string;
-  completed: boolean;
-};
-
-const initialTasks: Task[] = [
-  {
-    id: 1,
-    title: "Finish math homework",
-    completed: true,
-  },
-  {
-    id: 2,
-    title: "Read chapter 4 of Biology",
-    completed: false,
-  },
-  {
-    id: 3,
-    title: "Prepare English presentation",
-    completed: false,
-  },
-  {
-    id: 4,
-    title: "Review lecture notes",
-    completed: true,
-  },
-];
+import { useState } from "react";
+import { useAppData } from "@/components/appdataprovider";
 
 export default function TaskList() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [tasksLoaded, setTasksLoaded] = useState(false);
+  // ── Shared task data ──────────────────────────────────────────────────────
+
+  const { tasks, setTasks } = useAppData();
+
+  // ── Local UI state ────────────────────────────────────────────────────────
 
   const [inputValue, setInputValue] = useState("");
 
@@ -42,47 +17,7 @@ export default function TaskList() {
 
   const [editingTitle, setEditingTitle] = useState("");
 
-  // ── Load tasks ────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    const savedTasks = localStorage.getItem(
-      "student-life-tasks"
-    );
-
-    if (savedTasks) {
-      try {
-        const parsedTasks: Task[] = JSON.parse(savedTasks);
-        setTasks(parsedTasks);
-      } catch {
-        console.log("Could not load saved tasks.");
-      }
-    }
-
-    setTasksLoaded(true);
-  }, []);
-
-  // ── Save tasks ────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!tasksLoaded) {
-      return;
-    }
-
-    localStorage.setItem(
-      "student-life-tasks",
-      JSON.stringify(tasks)
-    );
-  }, [tasks, tasksLoaded]);
-
-  // ── Dashboard notification ───────────────────────────────────────────────
-
-  function notifyDashboard() {
-    window.dispatchEvent(
-      new Event("student-dashboard-updated")
-    );
-  }
-
-  // ── Toggle ────────────────────────────────────────────────────────────────
+  // ── Toggle task ───────────────────────────────────────────────────────────
 
   function toggleTask(id: number) {
     if (editingId !== null) {
@@ -99,11 +34,9 @@ export default function TaskList() {
           : task
       )
     );
-
-    notifyDashboard();
   }
 
-  // ── Add ───────────────────────────────────────────────────────────────────
+  // ── Add task ──────────────────────────────────────────────────────────────
 
   function addTask() {
     const trimmed = inputValue.trim();
@@ -112,7 +45,7 @@ export default function TaskList() {
       return;
     }
 
-    const newTask: Task = {
+    const newTask = {
       id: Date.now(),
       title: trimmed,
       completed: false,
@@ -124,11 +57,9 @@ export default function TaskList() {
     ]);
 
     setInputValue("");
-
-    notifyDashboard();
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Delete task ───────────────────────────────────────────────────────────
 
   function deleteTask(
     e: React.MouseEvent<HTMLButtonElement>,
@@ -137,21 +68,21 @@ export default function TaskList() {
     e.stopPropagation();
 
     setTasks((currentTasks) =>
-      currentTasks.filter((task) => task.id !== id)
+      currentTasks.filter(
+        (task) => task.id !== id
+      )
     );
 
     if (editingId === id) {
       cancelEdit();
     }
-
-    notifyDashboard();
   }
 
-  // ── Start editing ────────────────────────────────────────────────────────
+  // ── Start editing ─────────────────────────────────────────────────────────
 
   function startEditing(
     e: React.MouseEvent<HTMLButtonElement>,
-    task: Task
+    task: typeof tasks[number]
   ) {
     e.stopPropagation();
 
@@ -159,7 +90,7 @@ export default function TaskList() {
     setEditingTitle(task.title);
   }
 
-  // ── Save editing ─────────────────────────────────────────────────────────
+  // ── Save editing ──────────────────────────────────────────────────────────
 
   function saveEdit(id: number) {
     const trimmed = editingTitle.trim();
@@ -180,17 +111,16 @@ export default function TaskList() {
     );
 
     cancelEdit();
-    notifyDashboard();
   }
 
-  // ── Cancel editing ──────────────────────────────────────────────────────
+  // ── Cancel editing ────────────────────────────────────────────────────────
 
   function cancelEdit() {
     setEditingId(null);
     setEditingTitle("");
   }
 
-  // ── Keyboard handlers ────────────────────────────────────────────────────
+  // ── Keyboard handlers ─────────────────────────────────────────────────────
 
   function handleKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>
@@ -252,12 +182,18 @@ export default function TaskList() {
       {/* Progress */}
 
       <div className="mb-5 h-2 w-full rounded-full bg-gray-100">
+
         <div
-          className="h-2 rounded-full bg-green-400 transition-all duration-500"
+          className="
+            h-2 rounded-full
+            bg-green-400
+            transition-all duration-500
+          "
           style={{
             width: `${progress}%`,
           }}
         />
+
       </div>
 
       {/* Tasks */}
@@ -280,10 +216,13 @@ export default function TaskList() {
             return (
               <li
                 key={task.id}
-                onClick={() => toggleTask(task.id)}
+                onClick={() =>
+                  toggleTask(task.id)
+                }
                 className={`
-                  flex items-center gap-3 rounded-xl
-                  border p-4 transition-colors
+                  flex items-center gap-3
+                  rounded-xl border p-4
+                  transition-colors
                   ${
                     isEditing
                       ? "cursor-default border-blue-200 bg-blue-50"
@@ -329,6 +268,8 @@ export default function TaskList() {
                       {task.title}
                     </span>
 
+                    {/* Edit */}
+
                     <button
                       onClick={(e) =>
                         startEditing(e, task)
@@ -343,6 +284,8 @@ export default function TaskList() {
                     >
                       ✏️
                     </button>
+
+                    {/* Delete */}
 
                     <button
                       onClick={(e) =>
@@ -362,11 +305,16 @@ export default function TaskList() {
 
                 ) : (
 
+                  /* Edit mode */
+
                   <div
                     onClick={(e) =>
                       e.stopPropagation()
                     }
-                    className="flex flex-1 items-center gap-2"
+                    className="
+                      flex flex-1
+                      items-center gap-2
+                    "
                   >
 
                     <input
@@ -374,10 +322,15 @@ export default function TaskList() {
                       type="text"
                       value={editingTitle}
                       onChange={(e) =>
-                        setEditingTitle(e.target.value)
+                        setEditingTitle(
+                          e.target.value
+                        )
                       }
                       onKeyDown={(e) =>
-                        handleEditKeyDown(e, task.id)
+                        handleEditKeyDown(
+                          e,
+                          task.id
+                        )
                       }
                       className="
                         flex-1 rounded-lg
@@ -385,7 +338,8 @@ export default function TaskList() {
                         bg-white px-3 py-2
                         text-sm text-gray-800
                         outline-none
-                        focus:ring-2 focus:ring-blue-300
+                        focus:ring-2
+                        focus:ring-blue-300
                       "
                     />
 
@@ -395,9 +349,11 @@ export default function TaskList() {
                         saveEdit(task.id);
                       }}
                       className="
-                        rounded-lg bg-blue-500
+                        rounded-lg
+                        bg-blue-500
                         px-3 py-2
-                        text-xs font-medium text-white
+                        text-xs font-medium
+                        text-white
                         hover:bg-blue-600
                       "
                     >
@@ -410,9 +366,11 @@ export default function TaskList() {
                         cancelEdit();
                       }}
                       className="
-                        rounded-lg bg-gray-100
+                        rounded-lg
+                        bg-gray-100
                         px-3 py-2
-                        text-xs font-medium text-gray-600
+                        text-xs font-medium
+                        text-gray-600
                         hover:bg-gray-200
                       "
                     >
@@ -429,9 +387,13 @@ export default function TaskList() {
 
       </ul>
 
-      {/* Add Task */}
+      {/* Add task */}
 
-      <div className="flex gap-2 border-t border-gray-100 pt-4">
+      <div className="
+        flex gap-2
+        border-t border-gray-100
+        pt-4
+      ">
 
         <input
           type="text"
