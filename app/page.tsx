@@ -32,13 +32,60 @@ type Event = {
   type: "academic" | "social" | "sports" | "other";
 };
 
+type StudySessions = Record<string, number>;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getTodayKey(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getWeekStartKey(): string {
+  const today = new Date();
+
+  // JavaScript:
+  // Sunday = 0
+  // Monday = 1
+  // Tuesday = 2
+  // ...
+  const day = today.getDay();
+
+  // Convert Sunday from 0 to 7 so Monday becomes the start.
+  const daysFromMonday = day === 0 ? 6 : day - 1;
+
+  const monday = new Date(today);
+
+  monday.setDate(
+    today.getDate() - daysFromMonday
+  );
+
+  return monday.toISOString().split("T")[0];
+}
+
+function formatStudyTime(totalSeconds: number): string {
+  const hours = Math.floor(
+    totalSeconds / 3600
+  );
+
+  const minutes = Math.floor(
+    (totalSeconds % 3600) / 60
+  );
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [studyTime, setStudyTime] = useState(0);
+  const [studySessions, setStudySessions] =
+    useState<StudySessions>({});
 
   // ── Load dashboard data ───────────────────────────────────────────────────
 
@@ -46,7 +93,9 @@ export default function DashboardPage() {
     // Tasks
 
     const savedTasks =
-      localStorage.getItem("student-life-tasks");
+      localStorage.getItem(
+        "student-life-tasks"
+      );
 
     if (savedTasks) {
       try {
@@ -61,7 +110,9 @@ export default function DashboardPage() {
     // Notes
 
     const savedNotes =
-      localStorage.getItem("student-life-notes");
+      localStorage.getItem(
+        "student-life-notes"
+      );
 
     if (savedNotes) {
       try {
@@ -76,7 +127,9 @@ export default function DashboardPage() {
     // Events
 
     const savedEvents =
-      localStorage.getItem("student-life-events");
+      localStorage.getItem(
+        "student-life-events"
+      );
 
     if (savedEvents) {
       try {
@@ -88,25 +141,27 @@ export default function DashboardPage() {
       setEvents([]);
     }
 
-    // Study time
+    // Study Sessions
 
-    const savedStudyTime =
+    const savedSessions =
       localStorage.getItem(
-        "student-life-study-time"
+        "student-life-study-sessions"
       );
 
-    if (savedStudyTime) {
-      const parsedStudyTime = Number(savedStudyTime);
-
-      if (!Number.isNaN(parsedStudyTime)) {
-        setStudyTime(parsedStudyTime);
+    if (savedSessions) {
+      try {
+        setStudySessions(
+          JSON.parse(savedSessions)
+        );
+      } catch {
+        setStudySessions({});
       }
     } else {
-      setStudyTime(0);
+      setStudySessions({});
     }
   }
 
-  // ── Load on start + listen for updates ────────────────────────────────────
+  // ── Load + listen for changes ─────────────────────────────────────────────
 
   useEffect(() => {
     loadDashboardData();
@@ -138,7 +193,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // ── Statistics ────────────────────────────────────────────────────────────
+  // ── Task statistics ───────────────────────────────────────────────────────
 
   const completedTasks = tasks.filter(
     (task) => task.completed
@@ -149,32 +204,38 @@ export default function DashboardPage() {
   const incompleteTasks =
     totalTasks - completedTasks;
 
-  const today =
-    new Date().toISOString().split("T")[0];
+  // ── Event statistics ──────────────────────────────────────────────────────
+
+  const today = getTodayKey();
 
   const upcomingEvents = events.filter(
     (event) => event.date >= today
   );
 
-  // Study time in a readable format
+  // ── Study statistics ───────────────────────────────────────────────────────
 
-  const studyHours = Math.floor(
-    studyTime / 3600
-  );
+  const weekStart = getWeekStartKey();
 
-  const studyMinutes = Math.floor(
-    (studyTime % 3600) / 60
-  );
+  const todayStudySeconds =
+    studySessions[today] ?? 0;
 
-  let studyTimeLabel = "0m";
+  const thisWeekStudySeconds =
+    Object.entries(studySessions)
+      .filter(([date]) => date >= weekStart)
+      .reduce(
+        (total, [, seconds]) =>
+          total + seconds,
+        0
+      );
 
-  if (studyHours > 0) {
-    studyTimeLabel = `${studyHours}h ${studyMinutes}m`;
-  } else {
-    studyTimeLabel = `${studyMinutes}m`;
-  }
+  const totalStudySeconds =
+    Object.values(studySessions).reduce(
+      (total, seconds) =>
+        total + seconds,
+      0
+    );
 
-  // ── UI ────────────────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -215,9 +276,87 @@ export default function DashboardPage() {
 
         <DashboardCard
           title="Study Time"
-          value={studyTimeLabel}
+          value={formatStudyTime(todayStudySeconds)}
           icon="⏱️"
         />
+
+      </div>
+
+      {/* ── Study Statistics ── */}
+
+      <div className="mt-8 grid gap-5 sm:grid-cols-3">
+
+        {/* Today */}
+
+        <div className="
+          rounded-2xl
+          border border-gray-200
+          bg-white
+          p-6
+          shadow-sm
+        ">
+
+          <p className="text-sm text-gray-500">
+            📅 Today
+          </p>
+
+          <p className="mt-2 text-2xl font-bold text-gray-800">
+            {formatStudyTime(todayStudySeconds)}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Study time today
+          </p>
+
+        </div>
+
+        {/* This Week */}
+
+        <div className="
+          rounded-2xl
+          border border-gray-200
+          bg-white
+          p-6
+          shadow-sm
+        ">
+
+          <p className="text-sm text-gray-500">
+            📊 This Week
+          </p>
+
+          <p className="mt-2 text-2xl font-bold text-gray-800">
+            {formatStudyTime(thisWeekStudySeconds)}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            Monday to today
+          </p>
+
+        </div>
+
+        {/* Total */}
+
+        <div className="
+          rounded-2xl
+          border border-gray-200
+          bg-white
+          p-6
+          shadow-sm
+        ">
+
+          <p className="text-sm text-gray-500">
+            🏆 Total
+          </p>
+
+          <p className="mt-2 text-2xl font-bold text-gray-800">
+            {formatStudyTime(totalStudySeconds)}
+          </p>
+
+          <p className="mt-1 text-xs text-gray-400">
+            All recorded study time
+          </p>
+
+        </div>
 
       </div>
 
@@ -253,7 +392,11 @@ export default function DashboardPage() {
           <div className="mt-4 h-2 w-full rounded-full bg-gray-100">
 
             <div
-              className="h-2 rounded-full bg-green-400 transition-all duration-500"
+              className="
+                h-2 rounded-full
+                bg-green-400
+                transition-all duration-500
+              "
               style={{
                 width:
                   totalTasks === 0
@@ -286,9 +429,16 @@ export default function DashboardPage() {
           </p>
 
           <p className="mt-2 text-sm text-gray-500">
-            Total study time:{" "}
+            Today's study time:{" "}
             <span className="font-medium text-gray-700">
-              {studyTimeLabel}
+              {formatStudyTime(todayStudySeconds)}
+            </span>
+          </p>
+
+          <p className="mt-2 text-sm text-gray-500">
+            This week's study time:{" "}
+            <span className="font-medium text-gray-700">
+              {formatStudyTime(thisWeekStudySeconds)}
             </span>
           </p>
 
