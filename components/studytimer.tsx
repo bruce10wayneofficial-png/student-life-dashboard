@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type StudySessions = Record<string, number>;
-
-const STORAGE_KEY = "student-life-study-sessions";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import { useAppData } from "@/components/appdataprovider";
 
 function getTodayKey(): string {
   return new Date().toISOString().split("T")[0];
@@ -19,43 +12,38 @@ function formatTime(totalSeconds: number): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  return `${String(hours).padStart(2, "0")}:${String(
-    minutes
-  ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function StudyTimer() {
-  const [sessions, setSessions] = useState<StudySessions>({});
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  // ── Shared study data ─────────────────────────────────────────────────────
 
-  // Load saved study sessions
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+  const {
+    studySessions,
+    setStudySessions,
+  } = useAppData();
 
-      if (saved) {
-        const parsed: StudySessions = JSON.parse(saved);
-        setSessions(parsed);
-      }
-    } catch {
-      console.log("Could not load study sessions.");
-    }
+  // ── Local timer state ─────────────────────────────────────────────────────
 
-    setLoaded(true);
-  }, []);
+  const [elapsedSeconds, setElapsedSeconds] =
+    useState(0);
 
-  // Timer uses elapsed time only for the current session
+  const [isRunning, setIsRunning] =
+    useState(false);
+
+  // ── Timer ─────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!isRunning) {
       return;
     }
 
     const interval = window.setInterval(() => {
-      setElapsedSeconds((current) => current + 1);
+      setElapsedSeconds(
+        (currentSeconds) => currentSeconds + 1
+      );
     }, 1000);
 
     return () => {
@@ -63,7 +51,14 @@ export default function StudyTimer() {
     };
   }, [isRunning]);
 
-  // Save current session when the user pauses
+  // ── Start timer ───────────────────────────────────────────────────────────
+
+  function startTimer() {
+    setIsRunning(true);
+  }
+
+  // ── Pause + save timer ────────────────────────────────────────────────────
+
   function pauseTimer() {
     if (!isRunning) {
       return;
@@ -71,79 +66,69 @@ export default function StudyTimer() {
 
     const today = getTodayKey();
 
-    setSessions((currentSessions) => {
-      const updatedSessions = {
-        ...currentSessions,
-        [today]:
-          (currentSessions[today] ?? 0) + elapsedSeconds,
-      };
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedSessions)
-      );
-
-      return updatedSessions;
-    });
+    setStudySessions((currentSessions) => ({
+      ...currentSessions,
+      [today]:
+        (currentSessions[today] ?? 0) +
+        elapsedSeconds,
+    }));
 
     setElapsedSeconds(0);
     setIsRunning(false);
-
-    notifyDashboard();
   }
 
-  // Start timer
-  function startTimer() {
-    setIsRunning(true);
-  }
+  // ── Reset today's study time ──────────────────────────────────────────────
 
-  // Reset today's total
   function resetToday() {
     const today = getTodayKey();
 
     setIsRunning(false);
     setElapsedSeconds(0);
 
-    setSessions((currentSessions) => {
+    setStudySessions((currentSessions) => {
       const updatedSessions = {
         ...currentSessions,
       };
 
       delete updatedSessions[today];
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedSessions)
-      );
-
       return updatedSessions;
     });
-
-    notifyDashboard();
   }
 
-  // Tell dashboard to reload its data
-  function notifyDashboard() {
-    window.dispatchEvent(
-      new Event("student-dashboard-updated")
-    );
-  }
+  // ── Today's saved time ────────────────────────────────────────────────────
 
   const today = getTodayKey();
-  const todaySeconds = sessions[today] ?? 0;
+
+  const todaySeconds =
+    studySessions[today] ?? 0;
+
+  // ── UI ─────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="
+      rounded-2xl
+      border border-gray-200
+      bg-white
+      p-6
+      shadow-sm
+    ">
 
       {/* Header */}
 
       <div className="flex items-center justify-between">
+
         <div>
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h2 className="
+            text-lg font-semibold
+            text-gray-800
+          ">
             ⏱️ Study Timer
           </h2>
 
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="
+            mt-1 text-sm text-gray-500
+          ">
             Track your study time.
           </p>
         </div>
@@ -151,17 +136,24 @@ export default function StudyTimer() {
         <span className="text-2xl">
           📚
         </span>
+
       </div>
 
       {/* Current Session */}
 
       <div className="mt-6 text-center">
 
-        <div className="text-4xl font-bold tracking-wide text-gray-800">
+        <div className="
+          text-4xl font-bold
+          tracking-wide
+          text-gray-800
+        ">
           {formatTime(elapsedSeconds)}
         </div>
 
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="
+          mt-2 text-sm text-gray-400
+        ">
           {isRunning
             ? "Study session running..."
             : "Ready to study"}
@@ -171,9 +163,13 @@ export default function StudyTimer() {
 
       {/* Controls */}
 
-      <div className="mt-6 flex justify-center gap-2">
+      <div className="
+        mt-6 flex
+        justify-center gap-2
+      ">
 
         {!isRunning ? (
+
           <button
             onClick={startTimer}
             className="
@@ -182,13 +178,15 @@ export default function StudyTimer() {
               px-5 py-2.5
               text-sm font-medium
               text-white
-              hover:bg-blue-600
               transition-colors
+              hover:bg-blue-600
             "
           >
             ▶ Start
           </button>
+
         ) : (
+
           <button
             onClick={pauseTimer}
             className="
@@ -197,12 +195,13 @@ export default function StudyTimer() {
               px-5 py-2.5
               text-sm font-medium
               text-white
-              hover:bg-orange-600
               transition-colors
+              hover:bg-orange-600
             "
           >
             ⏸ Pause & Save
           </button>
+
         )}
 
         <button
@@ -213,8 +212,8 @@ export default function StudyTimer() {
             px-5 py-2.5
             text-sm font-medium
             text-gray-600
-            hover:bg-gray-200
             transition-colors
+            hover:bg-gray-200
           "
         >
           ↻ Reset Today
@@ -222,15 +221,25 @@ export default function StudyTimer() {
 
       </div>
 
-      {/* Today's Total */}
+      {/* Today's Saved Time */}
 
-      <div className="mt-5 rounded-xl bg-gray-50 p-3 text-center">
+      <div className="
+        mt-5
+        rounded-xl
+        bg-gray-50
+        p-3
+        text-center
+      ">
 
         <p className="text-xs text-gray-400">
           Today's saved study time
         </p>
 
-        <p className="mt-1 text-sm font-medium text-gray-700">
+        <p className="
+          mt-1
+          text-sm font-medium
+          text-gray-700
+        ">
           {Math.floor(todaySeconds / 60)} minutes
         </p>
 
